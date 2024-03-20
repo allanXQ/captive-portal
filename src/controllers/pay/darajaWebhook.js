@@ -1,6 +1,5 @@
 require("dotenv").config();
 const { default: mongoose } = require("mongoose");
-const { sendSMS } = require("../../utils/sendsms");
 const crypto = require("crypto");
 
 const fs = require("fs");
@@ -44,10 +43,6 @@ const darajaWebhook = async (req, res) => {
     const Msisdn = Body.stkCallback.CallbackMetadata.Item[4].Value;
 
     const randomCode = generateRandomCode();
-
-    const body = `You booking confirmation code is- ${randomCode}. Please keep it safe. Thank you for using our services.`;
-
-    await sendSMS(body, Msisdn);
 
     return res.status(200).json({ message: "payment success" });
   } catch (error) {

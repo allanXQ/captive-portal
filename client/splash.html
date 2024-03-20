@@ -1,97 +1,155 @@
 <!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vesta</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        /* margin: 40px; */
+      }
+      input{
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        margin-top: 20px;
+        width: 220px;
+      }
+      .container {
+        /* max-width: 800px; */
+        width:fit-content;
+        margin: auto;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        flex-wrap: wrap;
+      }
+      .card-container {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+      }
+      .card {
+        margin: 10px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 240px;
+      }
+      h1,
+      .price {
+        color: white;
+      }
+      p {
+        color: #666;
+        margin-top: 20px;
+        display: block;
+        background-color: #4caf50;
+        color: white;
+        padding: 10px;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+      .btn {
+        color: #666;
+        margin-top: 20px;
+        display: block;
+        border: 1px solid #4caf50;
+        background-color: white;
+        color: black;
+        padding: 10px;
+        text-decoration: none;
+        border-radius: 5px;
+        width:240px
+      }
+      .btn:hover {
+        background-color: #45a049;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1></h1>
+      <!-- <div> -->
+        <p>Stay connected with our high-speed internet service.</p>
+      <!-- </div> -->
+      <div>
+        <p>Once payment has been initiated you will receive an stk push to pay the required amount to arv-vesta systems HQ. Once payment is made you will be granted internet access.</p>
+    </div>
+      <div class="card-container">
+        <div class="card">
+          <div>
+            <p class="price">Unlimited@10 KES/hour</p>
+            <p>Perfect for quick online tasks.</p>
+          </div>
+          <form action="">
+            <input type="text" placeholder="Enter your mpesa number" name="phone"/>
+            <input type="hidden" value="1hr" name="package"/>
+            <button type="submit" class="btn">Buy</button>
+          </form>
+        </div>
+        <div class="card">
+            <div>
+                <p class="price">Unlimited@50 KES/6 hours</p>
+                <p>Ideal for longer browsing sessions.</p>
+            </div>
+            <form action="">
+              <input type="text" placeholder="Enter your mpesa number" name="phone"/>
+              <input type="hidden" value="6hrs" name="package"/>
+              <button type="submit" class="btn">Buy</button>
+            </form>
+          </div>
+          <div class="card">
+            <div>
+                <p class="price">Unlimited@90 KES/12 hours</p>
+                <p>Best value for all-day internet use.</p>
+            </div>
+            <form action="">
+              <input type="text" placeholder="Enter your mpesa number" name="phone"/>
+              <input type="hidden" value="12hrs" name="package"/>
+              <button type="submit" class="btn">Buy</button>
+            </form>
+          </div>
+       
+      </div>
 
-<link rel="shortcut icon" href="/images/splash.jpg" type="image/x-icon">
-<link rel="stylesheet" type="text/css" href="/splash.css">
+      <script>
+        console.log({clientmac: $clientmac})
+        fetch('http://192.168.31.1/cgi-bin/getmac.cgi')
+          .then(response => response.json())
+          .then(data => {
+              // Now you have the MAC address
+              const macAddress = data.macAddress;
+              console.log(macAddress)
+          })
 
-<title>$gatewayname Hotspot Gateway.</title>
-
-<!--
-Content:
-	Nodogsplash (NDS), by default, serves this splash page (splash.html)
-	when a client device Captive Portal Detection (CPD) process
-	attempts to send a port 80 request to the Internet.
-
-	You may either embed css in this file or use a separate .css file
-	in the same directory as this file, as demonstrated here.
-
-	It should be noted when designing a custom splash page
-	that for security reasons many CPD implementations:
-		Immediately close the browser when the client has authenticated.
-		Prohibit the use of href links.
-		Prohibit downloading of external files
-			(including .css and .js).
-		Prohibit the execution of javascript.
-
-Authentication:
-	A client is authenticated on submitting an HTTP form, method=get,
-	passing $authaction, $tok and $redir.
-
-	It is also possible to authenticate using an href link to
-	$authtarget but be aware that many device Captive Portal Detection
-	processes prohibit href links, so this method may not work with
-	all client devices.
-
-Available variables:
-	error_msg: $error_msg
-	gatewayname: $gatewayname
-	tok: $tok
-	redir: $redir
-	authaction: $authaction
-	denyaction: $denyaction
-	authtarget: $authtarget
-	clientip: $clientip
-	clientmac: $clientmac
-	clientupload: $clientupload
-	clientdownload: $clientdownload
-	gatewaymac: $gatewaymac
-	nclients: $nclients
-	maxclients: $maxclients
-	uptime: $uptime
-
-Additional variables for binauth that can be passed back via the HTTP GET,
-or appended to the query string of the authtarget link:
-	username
-	password
--->
-
-</head>
-
-<body>
-<div class="offset">
-<med-blue>$gatewayname Hotspot Gateway.</med-blue>
-<div class="insert">
-<br>
-<img src="/images/splash.jpg" alt="Splash Page: For access to the Internet, please click Continue.">
-<hr>
-<big-red>Welcome!</big-red>
-<hr>
-<br>
-<italic-black>For access to the Internet, please tap or click Continue.</italic-black>
-<br><br>
-<hr>
-
-<form method="GET" action="$authaction">
-<input type="hidden" name="tok" value="$tok">
-<input type="hidden" name="redir" value="$redir">
-<!-- for binauth script
-<label>Name:</label>
-<input type="text" name="username"><br><br>
-<label>Password:</label>
-<input type="text" name="password"><br><br>
--->
-<input type="submit" value="Continue">
-</form>
-	
-<hr>
-<copy-right>Copyright &copy; The Nodogsplash Contributors 2004-2023.<br>This software is released under the GNU GPL license.</copy-right>
-
-</div></div>
-</body>
+        const form = document.querySelector('form');
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const phone = form.phone.value;
+          const package = form.package.value;
+          fetch('http://localhost:5000/api/pay', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ phone, package }),
+          })
+            .then((res) => {
+              res.json()
+              return alert('Payment initiated');
+            })
+            .catch((err) => console.log(err));         
+          });
+      </script>
+      
+  </body>
 </html>

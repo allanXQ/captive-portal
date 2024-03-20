@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vesta</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        /* margin: 40px; */
+      }
+      input{
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        margin-top: 20px;
+        width: 220px;
+      }
+      .container {
+        /* max-width: 800px; */
+        width:fit-content;
+        margin: auto;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        flex-wrap: wrap;
+      }
+      .card-container {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+      }
+      .card {
+        margin: 10px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 240px;
+      }
+      h1,
+      .price {
+        color: white;
+      }
+      p {
+        color: #666;
+        margin-top: 20px;
+        display: block;
+        background-color: #4caf50;
+        color: white;
+        padding: 10px;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+      .btn {
+        color: #666;
+        margin-top: 20px;
+        display: block;
+        border: 1px solid #4caf50;
+        background-color: white;
+        color: black;
+        padding: 10px;
+        text-decoration: none;
+        border-radius: 5px;
+        width:240px
+      }
+      .btn:hover {
+        background-color: #45a049;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1></h1>
+      <!-- <div> -->
+        <p>Stay connected with our high-speed internet service.</p>
+      <!-- </div> -->
+      <div>
+        <p>Once payment has been initiated you will receive an stk push to pay the required amount to arv-vesta systems HQ. Once payment is made you will be granted internet access.</p>
+    </div>
+      <div class="card-container">
+        <div class="card">
+          <div>
+            <p class="price">Unlimited@10 KES/hour</p>
+            <p>Perfect for quick online tasks.</p>
+          </div>
+          <form action="">
+            <input type="text" placeholder="Enter your mpesa number"/>
+            <button type="submit" class="btn">Buy</button>
+          </form>
+        </div>
+        <div class="card">
+            <div>
+                <p class="price">Unlimited@50 KES/6 hours</p>
+                <p>Ideal for longer browsing sessions.</p>
+            </div>
+            <form action="">
+              <input type="text" placeholder="Enter your mpesa number"/>
+              <button type="submit" class="btn">Buy</button>
+            </form>
+          </div>
+          <div class="card">
+            <div>
+                <p class="price">Unlimited@90 KES/12 hours</p>
+                <p>Best value for all-day internet use.</p>
+            </div>
+            <form action="">
+              <input type="text" placeholder="Enter your mpesa number"/>
+              <button type="submit" class="btn">Buy</button>
+            </form>
+          </div>
+       
+      </div>
+
+      <script>
+        const form = document.querySelector('form');
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const input = form.querySelector('input');
+          const value = input.value;
+          if (value) {
+            alert(`You have bought internet access for ${value}`);
+          }
+        });
+      </script>
+      
+  </body>
+</html>

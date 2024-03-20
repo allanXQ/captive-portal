@@ -122,6 +122,15 @@
       </div>
 
       <script>
+
+        fetch('http://192.168.31.1/cgi-bin/getmac.cgi')
+          .then(response => response.json())
+          .then(data => {
+              // Now you have the MAC address
+              const macAddress = data.macAddress;
+              console.log(macAddress)
+          })
+
         const form = document.querySelector('form');
         form.addEventListener('submit', (e) => {
           e.preventDefault();

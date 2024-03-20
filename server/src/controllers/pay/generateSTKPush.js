@@ -4,9 +4,13 @@ const axios = require("axios");
 
 const { generateAccessToken } = require("../../utils/generateAccessToken");
 const { getTimestamp } = require("../../utils/timestamp");
+const config = require("../../config");
 
 const generateSTKPush = async (req, res) => {
   try {
+    const { phone, package } = req.body;
+    const amount = config.packages[package].price;
+
     const accessToken = await generateAccessToken();
     const timestamp = getTimestamp();
     const url = "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
@@ -22,10 +26,10 @@ const generateSTKPush = async (req, res) => {
         Password: password,
         Timestamp: timestamp,
         TransactionType: "CustomerBuyGoodsOnline",
-        Amount: req.body.amount,
-        PartyA: req.body.phone,
+        Amount: amount,
+        PartyA: phone,
         PartyB: process.env.PARTYB,
-        PhoneNumber: req.body.phone,
+        PhoneNumber: phone,
         CallBackURL:
           "https://booking-server-76dj.onrender.com/api/daraja/webhook",
         AccountReference: "test",

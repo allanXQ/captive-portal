@@ -91,7 +91,8 @@
             <p>Perfect for quick online tasks.</p>
           </div>
           <form action="">
-            <input type="text" placeholder="Enter your mpesa number"/>
+            <input type="text" placeholder="Enter your mpesa number" name="phone"/>
+            <input type="hidden" value="1hr" name="package"/>
             <button type="submit" class="btn">Buy</button>
           </form>
         </div>
@@ -101,7 +102,8 @@
                 <p>Ideal for longer browsing sessions.</p>
             </div>
             <form action="">
-              <input type="text" placeholder="Enter your mpesa number"/>
+              <input type="text" placeholder="Enter your mpesa number" name="phone"/>
+              <input type="hidden" value="6hrs" name="package"/>
               <button type="submit" class="btn">Buy</button>
             </form>
           </div>
@@ -111,7 +113,8 @@
                 <p>Best value for all-day internet use.</p>
             </div>
             <form action="">
-              <input type="text" placeholder="Enter your mpesa number"/>
+              <input type="text" placeholder="Enter your mpesa number" name="phone"/>
+              <input type="hidden" value="12hrs" name="package"/>
               <button type="submit" class="btn">Buy</button>
             </form>
           </div>
@@ -122,12 +125,21 @@
         const form = document.querySelector('form');
         form.addEventListener('submit', (e) => {
           e.preventDefault();
-          const input = form.querySelector('input');
-          const value = input.value;
-          if (value) {
-            alert(`You have bought internet access for ${value}`);
-          }
-        });
+          const phone = form.phone.value;
+          const package = form.package.value;
+          fetch('http://localhost:5000/api/pay', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ phone, package }),
+          })
+            .then((res) => {
+              res.json()
+              return alert('Payment initiated');
+            })
+            .catch((err) => console.log(err));         
+          });
       </script>
       
   </body>

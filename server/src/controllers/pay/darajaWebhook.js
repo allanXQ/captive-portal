@@ -1,8 +1,8 @@
 require("dotenv").config();
-const { default: mongoose } = require("mongoose");
-const crypto = require("crypto");
-
-const fs = require("fs");
+const clients = require("../../models/clients");
+const payments = require("../../models/payments");
+const config = require("../../config");
+const { authenticateUser } = require("../router");
 
 const whitelist = [
   "196.201.214.200",
@@ -19,14 +19,9 @@ const whitelist = [
   "196.201.212.69",
 ];
 
-const generateRandomCode = () => {
-  const min = 1000;
-  const max = 9999;
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
-
 const darajaWebhook = async (req, res) => {
   try {
+    console.log("webhook called");
     const ip = req.headers["x-forwarded-for"]
       ?.split(",")
       ?.map((ip) => ip.trim())[1];
@@ -42,7 +37,33 @@ const darajaWebhook = async (req, res) => {
     const TransactionDate = Body.stkCallback.CallbackMetadata.Item[3].Value;
     const Msisdn = Body.stkCallback.CallbackMetadata.Item[4].Value;
 
-    const randomCode = generateRandomCode();
+    const payment = new payments({
+      phoneNumber: Msisdn,
+      amount: Amount,
+      mpesaReceiptNumber: MpesaReceiptNumber,
+      transactionDate: TransactionDate,
+    });
+
+    await payment.save();
+    const package = Object.keys(config.packages).find(
+      (key) => config.packages[key].price === parseInt(Amount)
+    );
+
+    const client = await clients.findOne({ phoneNumber: Msisdn }).lean();
+    if (client.status === "active") {
+      const newExpiry = new Date(
+        new Date(client.expiryDate).getTime() + config.packages[package].expiry
+      );
+      await clients.findOneAndUpdate(
+        { macAddress: client.macAddress },
+        {
+          currentSubscription: package,
+          expiryDate: newExpiry,
+        }
+      );
+    } else {
+      authenticateUser(client.macAddress);
+    }
 
     return res.status(200).json({ message: "payment success" });
   } catch (error) {

@@ -125,21 +125,28 @@
         const form = document.querySelector('form');
         form.addEventListener('submit', (e) => {
           e.preventDefault();
-          const phone = form.phone.value;
-          const package = form.package.value;
-          fetch('http://localhost:5000/api/pay', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ phone, package,macadrress: `$clientmac` }),
-          })
-            .then((res) => {
-              res.json()
-              return alert('Payment initiated');
+          const phoneNumber = form.phone.value;
+          var regex = /^(2547|2541)\d{8}$/;
+
+          if (!regex.test(phoneNumber)) {
+              return alert('Phone number must start with 2547 or 2541 and be 12 digits long. e.g 254712345678 or 254712345678');
+          } else {
+            const package = form.package.value;
+            fetch('http://localhost:5000/api/pay', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ phoneNumber, package,macaddress: `$clientmac` }),
             })
-            .catch((err) => console.log(err));         
+              .then((res) => {
+                res.json()
+                return alert('Payment initiated');
+              })
+              .catch((err) => console.log(err));    
+            }     
           });
+        
       </script>
       
   </body>

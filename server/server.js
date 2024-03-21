@@ -2,6 +2,9 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const clients = require("./src/models/clients");
+const { deauthenticateUser } = require("./src/controllers/router");
+const { DBConn } = require("./src/config");
 
 const app = express();
 app.use(express.json());
@@ -17,6 +20,20 @@ app.use("/api", require("./src/routes/index"));
 
 const port = process.env.PORT || 5000;
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+DBConn(app, port);
+
+async function checkStatus() {
+  const users = await clients.find({}).lean();
+  users.forEach(async (client) => {
+    if (client.status == "active" && new Date(client.expiryDate) < new Date()) {
+      await users.findOneAndUpdate(
+        { macAddress: client.macAddress },
+        { status: "inactive" }
+      );
+
+      deauthenticateUser(client.macAddress);
+    }
+  });
+}
+
+setInterval(checkStatus, 1000 * 60);

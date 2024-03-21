@@ -3,10 +3,7 @@ const mongoose = require("mongoose");
 
 const DBconn = async (app, port) => {
   return mongoose
-    .connect(process.env.DATABASE, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    })
+    .connect(process.env.DATABASE)
     .then(() => {
       console.log("Connected to database");
       app.listen(port, () => {

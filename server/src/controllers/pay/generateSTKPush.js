@@ -8,8 +8,9 @@ const config = require("../../config");
 
 const generateSTKPush = async (req, res) => {
   try {
-    const { phone, package } = req.body;
+    const { phone, package, macadrress } = req.body;
     const amount = config.packages[package].price;
+    console.log(phone, amount, macadrress);
 
     const accessToken = await generateAccessToken();
     const timestamp = getTimestamp();

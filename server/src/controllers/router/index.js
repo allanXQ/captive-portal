@@ -5,6 +5,7 @@ const ssh = new NodeSSH();
 async function authenticateUser(macAddress) {
   await ssh.connect({
     host: process.env.ROUTER_IP,
+    port: process.env.ROUTER_PORT,
     username: "root",
     password: process.env.ROUTER_PASSWORD,
   });
@@ -35,6 +36,7 @@ async function deauthenticateUser(macAddress) {
 async function getmacs() {
   await ssh.connect({
     host: process.env.ROUTER_IP,
+    port: process.env.ROUTER_PORT,
     username: "root",
     password: process.env.ROUTER_PASSWORD,
   });
@@ -53,9 +55,10 @@ async function getmacs() {
   ssh.dispose();
 }
 
-//test// getmacs();
+//test//
+getmacs();
 
-module.exports = {
-  authenticateUser,
-  deauthenticateUser,
-};
+// module.exports = {
+//   authenticateUser,
+//   deauthenticateUser,
+// };

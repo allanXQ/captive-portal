@@ -20,56 +20,55 @@ const whitelist = [
 ];
 
 const darajaWebhook = async (req, res) => {
-  console.log("webhook called");
-  // try {
-  //   console.log("webhook called");
-  //   const ip = req.headers["x-forwarded-for"]
-  //     ?.split(",")
-  //     ?.map((ip) => ip.trim())[1];
-  //   if (!whitelist.includes(ip)) {
-  //     return res.status(403).json({ message: "You are not allowed" });
-  //   }
-  //   const { Body } = req.body;
-  //   if (Body.stkCallback.ResultCode !== 0) {
-  //     return res.status(400).json({ message: "payment failed" });
-  //   }
-  //   const Amount = Body.stkCallback.CallbackMetadata.Item[0].Value;
-  //   const MpesaReceiptNumber = Body.stkCallback.CallbackMetadata.Item[1].Value;
-  //   const TransactionDate = Body.stkCallback.CallbackMetadata.Item[3].Value;
-  //   const Msisdn = Body.stkCallback.CallbackMetadata.Item[4].Value;
+  try {
+    console.log("webhook called");
+    const ip = req.headers["x-forwarded-for"]
+      ?.split(",")
+      ?.map((ip) => ip.trim())[1];
+    if (!whitelist.includes(ip)) {
+      return res.status(403).json({ message: "You are not allowed" });
+    }
+    const { Body } = req.body;
+    if (Body.stkCallback.ResultCode !== 0) {
+      return res.status(400).json({ message: "payment failed" });
+    }
+    const Amount = Body.stkCallback.CallbackMetadata.Item[0].Value;
+    const MpesaReceiptNumber = Body.stkCallback.CallbackMetadata.Item[1].Value;
+    const TransactionDate = Body.stkCallback.CallbackMetadata.Item[3].Value;
+    const Msisdn = Body.stkCallback.CallbackMetadata.Item[4].Value;
 
-  //   const payment = new payments({
-  //     phoneNumber: Msisdn,
-  //     amount: Amount,
-  //     mpesaReceiptNumber: MpesaReceiptNumber,
-  //     transactionDate: TransactionDate,
-  //   });
+    const payment = new payments({
+      phoneNumber: Msisdn,
+      amount: Amount,
+      mpesaReceiptNumber: MpesaReceiptNumber,
+      transactionDate: TransactionDate,
+    });
 
-  //   await payment.save();
-  //   const package = Object.keys(config.packages).find(
-  //     (key) => config.packages[key].price === parseInt(Amount)
-  //   );
+    await payment.save();
+    const package = Object.keys(config.packages).find(
+      (key) => config.packages[key].price === parseInt(Amount)
+    );
 
-  //   const client = await clients.findOne({ phoneNumber: Msisdn }).lean();
-  //   if (client.status === "active") {
-  //     const newExpiry = new Date(
-  //       new Date(client.expiryDate).getTime() + config.packages[package].expiry
-  //     );
-  //     await clients.findOneAndUpdate(
-  //       { macAddress: client.macAddress },
-  //       {
-  //         currentSubscription: package,
-  //         expiryDate: newExpiry,
-  //       }
-  //     );
-  //   } else {
-  //     authenticateUser(client.macAddress);
-  //   }
+    const client = await clients.findOne({ phoneNumber: Msisdn }).lean();
+    if (client.status === "active") {
+      const newExpiry = new Date(
+        new Date(client.expiryDate).getTime() + config.packages[package].expiry
+      );
+      await clients.findOneAndUpdate(
+        { macAddress: client.macAddress },
+        {
+          currentSubscription: package,
+          expiryDate: newExpiry,
+        }
+      );
+    } else {
+      authenticateUser(client.macAddress);
+    }
 
-  //   return res.status(200).json({ message: "payment success" });
-  // } catch (error) {
-  //   console.log(error);
-  // }
+    return res.status(200).json({ message: "payment success" });
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 module.exports = { darajaWebhook };

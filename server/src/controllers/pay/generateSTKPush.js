@@ -32,7 +32,7 @@ const generateSTKPush = async (req, res) => {
       `${process.env.BUSINESS_SHORT_CODE}${process.env.PASSKEY}${timestamp}`
     ).toString("base64");
 
-    const callbackUrl = `https://tinywebhook.onrender.com/api/daraja/webhook`;
+    const callbackUrl = "https://tinywebhook.onrender.com/api/daraja/webhook";
 
     await axios.post(
       url,

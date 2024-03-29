@@ -23,17 +23,24 @@ const port = process.env.PORT || 5000;
 DBConn(app, port);
 
 async function checkStatus() {
-  const users = await clients.find({}).lean();
-  users.forEach(async (client) => {
-    if (client.status == "active" && new Date(client.expiryDate) < new Date()) {
-      await users.findOneAndUpdate(
-        { macAddress: client.macAddress },
-        { status: "inactive" }
-      );
+  try {
+    const users = await clients.find({}).lean();
+    users.forEach(async (client) => {
+      if (
+        client.status == "active" &&
+        new Date(client.expiryDate) < new Date()
+      ) {
+        await users.findOneAndUpdate(
+          { macAddress: client.macAddress },
+          { status: "inactive" }
+        );
 
-      deauthenticateUser(client.macAddress);
-    }
-  });
+        deauthenticateUser(client.macAddress);
+      }
+    });
+  } catch (error) {
+    console.log(console.error());
+  }
 }
 
 setInterval(checkStatus, 1000 * 60);

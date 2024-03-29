@@ -3,34 +3,43 @@ const { NodeSSH } = require("node-ssh");
 const ssh = new NodeSSH();
 
 async function authenticateUser(macAddress) {
-  await ssh.connect({
-    host: process.env.ROUTER_IP,
-    port: process.env.ROUTER_PORT,
-    username: "root",
-    password: process.env.ROUTER_PASSWORD,
-  });
+  try {
+    await ssh.connect({
+      host: process.env.ROUTER_IP,
+      port: process.env.ROUTER_PORT,
+      username: "root",
+      password: process.env.ROUTER_PASSWORD,
+    });
 
-  macAddress = macAddress.toLowerCase();
+    macAddress = macAddress.toLowerCase();
 
-  await ssh.execCommand(`/etc/nodogsplash/scripts/auth.sh ${macAddress}`);
-  ssh.dispose();
+    await ssh.execCommand(`/etc/nodogsplash/scripts/auth.sh ${macAddress}`);
+  } catch (error) {
+    console.log(error);
+  } finally {
+    ssh.dispose();
+  }
 }
 
 async function deauthenticateUser(macAddress) {
-  await ssh.connect({
-    host: process.env.ROUTER_IP,
-    username: "root",
-    password: process.env.ROUTER_PASSWORD,
-  });
-  macAddress = macAddress.toLowerCase();
+  try {
+    await ssh.connect({
+      host: process.env.ROUTER_IP,
+      username: "root",
+      password: process.env.ROUTER_PASSWORD,
+    });
+    macAddress = macAddress.toLowerCase();
 
-  const response = await ssh.execCommand(
-    `/etc/nodogsplash/scripts/deauth.sh ${macAddress}`
-  );
+    const response = await ssh.execCommand(
+      `/etc/nodogsplash/scripts/deauth.sh ${macAddress}`
+    );
 
-  console.log(response);
-
-  ssh.dispose();
+    console.log(response);
+  } catch (error) {
+    console.log(error);
+  } finally {
+    ssh.dispose();
+  }
 }
 
 async function getmacs() {

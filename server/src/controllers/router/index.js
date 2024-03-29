@@ -49,13 +49,6 @@ async function getmacs() {
 
   // Find and print all MAC addresses
   const macAddresses = response.match(regex);
-  console.log({
-    host: process.env.ROUTER_IP,
-    port: process.env.ROUTER_PORT,
-    username: "root",
-    password: process.env.ROUTER_PASSWORD,
-  });
-  console.log("response", res);
 
   console.log(macAddresses);
 
@@ -65,5 +58,4 @@ async function getmacs() {
 module.exports = {
   authenticateUser,
   deauthenticateUser,
-  getmacs,
 };

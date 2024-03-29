@@ -43,7 +43,7 @@ const generateSTKPush = async (req, res) => {
         PartyA: phoneNumber,
         PartyB: process.env.PARTYB,
         PhoneNumber: phoneNumber,
-        CallBackURL: `https://44.217.48.200:${
+        CallBackURL: `http://44.217.48.200:${
           process.env.PORT || 5000
         }/api/daraja/webhook`,
         AccountReference: "test",

@@ -34,6 +34,12 @@ const darajaWebhook = async (req, res) => {
         }
       );
     } else {
+      client.currentSubscription = package;
+      client.status = "active";
+      client.expiryDate = new Date(
+        Date.now() + config.packages[package].expiry
+      );
+      await client.save();
       authenticateUser(client.macAddress);
     }
 

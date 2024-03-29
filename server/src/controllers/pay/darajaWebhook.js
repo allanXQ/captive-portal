@@ -6,17 +6,17 @@ const { authenticateUser } = require("../router");
 
 const darajaWebhook = async (req, res) => {
   try {
+    //transactions
     const { phoneNumber, amount, mpesaReceiptNumber, transactionDate } =
       req.body;
 
-    const payment = new payments({
+    await payments.create({
       phoneNumber,
       amount,
       mpesaReceiptNumber,
       transactionDate,
     });
 
-    await payment.save();
     const package = Object.keys(config.packages).find(
       (key) => config.packages[key].price === parseInt(amount)
     );

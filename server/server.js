@@ -35,7 +35,7 @@ async function checkStatus() {
           { status: "inactive" }
         );
 
-        deauthenticateUser(client.macAddress);
+        await deauthenticateUser(client.macAddress);
       }
     });
   } catch (error) {

@@ -31,6 +31,9 @@ const generateSTKPush = async (req, res) => {
     const password = Buffer.from(
       `${process.env.BUSINESS_SHORT_CODE}${process.env.PASSKEY}${timestamp}`
     ).toString("base64");
+    console.log(
+      `http://44.217.48.200:${process.env.PORT || 5000}/api/daraja/webhook`
+    );
 
     await axios.post(
       url,

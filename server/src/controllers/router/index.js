@@ -13,7 +13,10 @@ async function authenticateUser(macAddress) {
 
     macAddress = macAddress.toLowerCase();
 
-    await ssh.execCommand(`/etc/nodogsplash/scripts/auth.sh ${macAddress}`);
+    const response = await ssh.execCommand(
+      `/etc/nodogsplash/scripts/auth.sh ${macAddress}`
+    );
+    console.log(response);
   } catch (error) {
     console.log(error);
   } finally {

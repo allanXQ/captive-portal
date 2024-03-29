@@ -43,8 +43,9 @@ const generateSTKPush = async (req, res) => {
         PartyA: phoneNumber,
         PartyB: process.env.PARTYB,
         PhoneNumber: phoneNumber,
-        CallBackURL:
-          "https://6d9c-197-232-84-170.ngrok-free.app/api/daraja/webhook",
+        CallBackURL: `https://44.217.48.200:${
+          process.env.PORT || 5000
+        }/api/daraja/webhook`,
         AccountReference: "test",
         TransactionDesc: "Mpesa Daraja API stk push test",
       },

@@ -42,7 +42,8 @@ const darajaWebhook = async (req, res) => {
           status: "active",
         }
       );
-      await authenticateUser(client.macAddress);
+      authenticateUser(client.macAddress);
+      console.log("authenticated");
     }
 
     return res.status(200).json({ message: "payment success" });

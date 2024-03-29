@@ -5,7 +5,7 @@ const axios = require("axios");
 const clients = require("./src/models/clients");
 const { deauthenticateUser } = require("./src/controllers/router");
 const { DBConn } = require("./src/config");
-const { getMacs } = require("./src/controllers/router");
+const { getmacs } = require("./src/controllers/router");
 
 const app = express();
 app.use(express.json());
@@ -23,7 +23,7 @@ const port = process.env.PORT || 5000;
 
 DBConn(app, port);
 
-getMacs();
+getmacs();
 
 async function checkStatus() {
   const users = await clients.find({}).lean();

@@ -132,7 +132,7 @@
               return alert('Phone number must start with 2547 or 2541 and be 12 digits long. e.g 254712345678 or 254712345678');
           } else {
             const package = form.package.value;
-            fetch('https://44.217.48.200:5000/api/pay', {
+            fetch('http://44.217.48.200:5000/api/pay', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

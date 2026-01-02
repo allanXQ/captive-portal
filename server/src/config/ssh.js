@@ -66,6 +66,6 @@ class RouterSSHClient {
 }
 
 // Create singleton instance
-const routerSSH = new RouterSSHClient();
+const sshClient = new RouterSSHClient();
 
-module.exports = routerSSH;
+module.exports = sshClient;

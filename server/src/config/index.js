@@ -1,4 +1,3 @@
-const DBConn = require("./db");
 
 const packages = {
   "1hr": {
@@ -19,6 +18,5 @@ const packages = {
 };
 
 module.exports = {
-  DBConn,
   packages,
 };

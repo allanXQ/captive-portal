@@ -2,7 +2,9 @@ require("dotenv").config();
 const clients = require("../../models/clients");
 const payments = require("../../models/payments");
 const config = require("../../config");
-const { authenticateUser } = require("../router");
+const sshClient = require("../../config/ssh");
+// const { authenticateUser } = require("../router");
+
 
 const darajaWebhook = async (req, res) => {
   try {
@@ -42,7 +44,7 @@ const darajaWebhook = async (req, res) => {
           status: "active",
         }
       );
-      await authenticateUser(client.macAddress);
+      await sshClient.authenticateUser(client.macAddress);
       console.log("authenticated");
     }
 

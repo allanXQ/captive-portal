@@ -1,7 +1,7 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 
-const MongoClient = () => {
+const mongoClient = () => {
   return mongoose
     .connect(process.env.DATABASE)
     .then(() => {
@@ -12,4 +12,4 @@ const MongoClient = () => {
     });
 };
 
-module.exports = {MongoClient};
+module.exports = {mongoClient};

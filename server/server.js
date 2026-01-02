@@ -1,10 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
-const clients = require("./src/models/clients");
-const { deauthenticateUser } = require("./src/controllers/router");
-const { DBConn } = require("./src/config");
+const routerSSH = require("./src/config/ssh");
+const { MongoClient } = require("./src/config/db");
 
 const app = express();
 app.use(express.json());
@@ -20,27 +18,16 @@ app.use("/api", require("./src/routes/index"));
 
 const port = process.env.PORT || 5000;
 
-DBConn(app, port);
+async function startServer() {
+  await MongoClient();
+  await routerSSH.connect();
 
-async function checkStatus() {
-  try {
-    const users = await clients.find({}).lean();
-    users.forEach(async (client) => {
-      if (
-        client.status == "active" &&
-        new Date(client.expiryDate) < new Date()
-      ) {
-        await users.findOneAndUpdate(
-          { macAddress: client.macAddress },
-          { status: "inactive" }
-        );
-
-        await deauthenticateUser(client.macAddress);
-      }
-    });
-  } catch (error) {
-    console.log(console.error());
-  }
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
 }
 
-setInterval(checkStatus, 1000 * 60);
+startServer().catch(error => {
+  console.error('Fatal startup error:', error);
+  process.exit(1);
+});

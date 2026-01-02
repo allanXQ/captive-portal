@@ -1,4 +1,4 @@
-const DBConn = require("./dbConn");
+const DBConn = require("./db");
 
 const packages = {
   "1hr": {

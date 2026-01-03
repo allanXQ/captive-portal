@@ -6,20 +6,12 @@ const clientSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    ipAddress: {
+      type: String,
+      required: true,
+    },
     phoneNumber: {
       type: String,
-      required: true,
-    },
-    currentSubscription: {
-      type: String,
-    },
-    status: {
-      type: String,
-      required: true,
-      enum: ["active", "inactive"],
-    },
-    expiryDate: {
-      type: Date,
       required: true,
     },
   },

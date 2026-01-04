@@ -142,6 +142,15 @@ class RouterSSHClient {
     }
   }
 
+  async getClients() {
+    try {
+      return await this.executeCommand('ndsctl json');
+    } catch (error) {
+      console.error('Failed to get router clients:', error.message);
+      throw error;
+    }
+  }
+
   isConnectionHealthy() {
     return this.isConnected && this.ssh.connection && !this.ssh.connection.destroyed;
   }

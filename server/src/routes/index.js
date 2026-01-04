@@ -77,6 +77,33 @@ router.get("/router/status", async (req, res) => {
   }
 });
 
+router.get("/router/clients", async (req, res) => {
+  try {
+    if (!sshClient.isConnectionHealthy()) {
+      return res.status(503).json({ 
+        error: "SSH connection to router is not available",
+        success: false,
+        connected: false 
+      });
+    }
+
+    const clients = await sshClient.getClients();
+
+    return res.status(200).json({ 
+      success: true,
+      connected: true,
+      clients: clients
+    });
+  } catch (error) {
+    console.error('Router status error:', error.message);
+    return res.status(500).json({ 
+      error: "Failed to get router status",
+      success: false,
+      message: error.message 
+    });
+  }
+});
+
 router.get("/ssh/status", (req, res) => {
   const status = sshMonitor.getConnectionStatus();
   

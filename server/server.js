@@ -92,6 +92,7 @@ function gracefulShutdown() {
   // Close SSH connection
   try {
     sshClient.disconnect();
+    console.log('SSH connection closed');
   } catch (error) {
     console.error('Error closing SSH connection:', error.message);
   }

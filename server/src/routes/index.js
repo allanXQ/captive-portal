@@ -2,9 +2,9 @@ const router = require("express").Router();
 
 const { generateSTKPush } = require("../controllers/pay/generateSTKPush");
 const { darajaWebhook } = require("../controllers/pay/darajaWebhook");
-const { dummySubscribe } = require("../controllers/pay/dummySubscribe");
 const sshClient = require("../config/ssh");
 const sshMonitor = require("../utils/sshMonitor");
+const { dummySubscribe } = require("../controllers/pay/dummySubscribe");
 
 router.post("/subscribe", generateSTKPush);
 router.post("/dummy-subscribe", dummySubscribe); // For testing purposes

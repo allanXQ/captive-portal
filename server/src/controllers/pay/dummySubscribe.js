@@ -23,8 +23,19 @@ const dummySubscribe = async (req, res) => {
     //   await newClient.save();
     // }
 
-    await sshClient.authenticateUser(macAddress);
-    console.log("authenticated via dummy pay");
+    // Try to authenticate user, but don't fail if SSH is down
+    try {
+      if (sshClient.isConnectionHealthy()) {
+        await sshClient.authenticateUser(macAddress);
+        console.log("User authenticated via dummy pay");
+      } else {
+        console.warn("SSH connection not available for dummy authentication");
+      }
+    } catch (sshError) {
+      console.error("Failed to authenticate user via SSH in dummy pay:", sshError.message);
+      // Continue even if SSH authentication fails
+    }
+    
     // ADD SESSION TIME INCREMENT LOGIC
 } catch (error) {
     console.error("Dummy pay error:", error);

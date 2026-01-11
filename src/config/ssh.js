@@ -82,7 +82,7 @@ class RouterSSHClient {
     } catch (error) {
       console.error('SSH connection failed:', error.message);
       this.isConnected = false;
-      throw error;
+      process.exit(0);
     }
   }
 

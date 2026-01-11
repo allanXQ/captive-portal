@@ -9,6 +9,7 @@ const mongoClient = () => {
     })
     .catch((error) => {
       console.log(error);
+      process.exit(0);
     });
 };
 

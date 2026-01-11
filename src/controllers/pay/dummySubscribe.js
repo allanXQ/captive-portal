@@ -7,21 +7,21 @@ const Clients = require("../../models/clients");
 const dummySubscribe = async (req, res) => {
   try {
     const { clientMac, clientIp, phoneNumber, packageName } = req.body;
-    if (!packages.find((pkg) => pkg.name === packageName)) {
-      return res.status(400).json({ error: "Invalid package name" });
-    }
+    // if (!packages.find((pkg) => pkg.name === packageName)) {
+    //   return res.status(400).json({ error: "Invalid package name" });
+    // }
     const macAddress = clientMac;
     const client = await Clients.findOne({ macAddress }).lean();
     if (!client) {
       const newClient = new Clients({
-        phoneNumber,
+        // phoneNumber,
         ipAddress: clientIp,
         macAddress,
-        currentSubscription: packageName,
-        status: "pending-payment",
-        expiryDate: new Date(
-          Date.now() + packages.find((pkg) => pkg.name === packageName).expiry
-        ),
+        // currentSubscription: packageName,
+        // status: "pending-payment",
+        // expiryDate: new Date(
+        //   Date.now() + packages.find((pkg) => pkg.name === packageName).expiry
+        // ),
       });
       await newClient.save();
     }

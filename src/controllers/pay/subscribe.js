@@ -2,6 +2,7 @@ const clients = require("../../models/clients");
 const sessions = require("../../models/sessions");
 const mongoose = require("mongoose");
 const packages = require("../../config/packages");
+const triggerStkPush = require("../../utils/daraja/triggerStkPush");
 
 const subscribe = async (req, res) => {
   try {
@@ -66,29 +67,55 @@ const subscribe = async (req, res) => {
       }
     } else {
       try {
-        //check if client has an active session
-        const activeSession = await sessions.findOne({
-          clientId: client._id,
-          status: "active",
+        //trigger payment process here
+        const triggerStkPush = await triggerStkPush(
+          phoneNumber,
+          packages[packageName].price,
+        );
+        return res.status(200).json({
+          success: true,
+          message: "Payment initiated, complete the payment to start session",
+          data: triggerStkPush.data,
         });
-        if (activeSession) {
-          // create new session with deferred start time
-          const deferredStartTime = activeSession.endTime;
-          const newSession = new sessions({
-            clientId: client._id,
-            packageName,
-            status: "active",
-            startTime: deferredStartTime,
-            endTime: calculateSessionEndTime(deferredStartTime),
-          });
-          const savedSession = await newSession.save();
-          return res.status(201).json({
-            success: true,
-            message:
-              "New session will start after the current active session ends",
-            session: savedSession,
-          });
-        }
+        // TODO: migrate to daraja webhooks to confirm payment before starting session
+        // //check if client has an active session
+        // const activeSession = await sessions.findOne({
+        //   clientId: client._id,
+        //   status: "active",
+        // });
+        // if (activeSession) {
+        //   // create new session with deferred start time
+        //   const deferredStartTime = activeSession.endTime;
+        //   const newSession = new sessions({
+        //     clientId: client._id,
+        //     packageName,
+        //     status: "active",
+        //     startTime: deferredStartTime,
+        //     endTime: calculateSessionEndTime(deferredStartTime),
+        //   });
+        //   const savedSession = await newSession.save();
+        //   return res.status(201).json({
+        //     success: true,
+        //     message:
+        //       "New session will start after the current active session ends",
+        //     session: savedSession,
+        //   });
+        // } else {
+        //   // create new session starting now
+        //   const newSession = new sessions({
+        //     clientId: client._id,
+        //     packageName,
+        //     status: "active",
+        //     startTime: new Date(),
+        //     endTime: calculateSessionEndTime(new Date()),
+        //   });
+        //   const savedSession = await newSession.save();
+        //   return res.status(201).json({
+        //     success: true,
+        //     message: "New session has started",
+        //     session: savedSession,
+        //   });
+        // }
       } catch (error) {
         throw error;
       }

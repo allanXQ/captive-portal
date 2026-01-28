@@ -14,10 +14,18 @@ const clientSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    completedTrial: {
+      type: Boolean,
+      default: false,
+    },
+    completedReferral: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Clients", clientSchema);

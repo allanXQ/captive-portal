@@ -7,10 +7,6 @@ const sessionsSchema = new mongoose.Schema(
       ref: "Clients",
       required: true,
     },
-    packageName: {
-      type: String,
-      required: true,
-    },
     startTime: {
       type: Date,
       default: Date.now,
@@ -20,13 +16,17 @@ const sessionsSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["active", "inactive"],
+      enum: ["active", "paused", "expired"],
       default: "active",
+    },
+    isTrial: {
+      type: Boolean,
+      default: false,
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Sessions", sessionsSchema);

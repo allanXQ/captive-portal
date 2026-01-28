@@ -68,14 +68,10 @@ const subscribe = async (req, res) => {
     } else {
       try {
         //trigger payment process here
-        const triggerStkPush = await triggerStkPush(
-          phoneNumber,
-          packages[packageName].price,
-        );
+        await triggerStkPush(phoneNumber, packages[packageName].price);
         return res.status(200).json({
           success: true,
           message: "Payment initiated, complete the payment to start session",
-          data: triggerStkPush.data,
         });
         // TODO: migrate to daraja webhooks to confirm payment before starting session
         // //check if client has an active session

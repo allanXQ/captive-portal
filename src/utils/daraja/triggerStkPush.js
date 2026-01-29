@@ -1,10 +1,8 @@
 const { default: mongoose } = require("mongoose");
 const axios = require("axios");
-const { Transactions } = require("../../../models");
-const config = require("../../config");
-const Clients = require("../../models/clients");
 const generateAccessToken = require("./generateAccessToken");
 const getTimeStamp = require("./timestamp");
+const transactions = require("../../models/transactions");
 
 const triggerStkPush = async (phoneNumber, amount) => {
   const accessToken = await generateAccessToken();
@@ -42,6 +40,7 @@ const triggerStkPush = async (phoneNumber, amount) => {
     );
     // log response
   } catch (error) {
+    console.log("STK Push request failed:", error);
     throw new Error(error);
   }
 
@@ -50,7 +49,7 @@ const triggerStkPush = async (phoneNumber, amount) => {
     throw new Error("Failed to initiate transaction");
   }
 
-  await Transactions.create({
+  await transactions.create({
     Amount: amount,
     PhoneNumber: phoneNumber,
     MerchantRequestID: stkResponse.data.MerchantRequestID,

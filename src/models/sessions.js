@@ -19,9 +19,9 @@ const sessionsSchema = new mongoose.Schema(
       enum: ["active", "paused", "expired"],
       default: "active",
     },
-    isTrial: {
-      type: Boolean,
-      default: false,
+    packageName: {
+      type: String,
+      required: true,
     },
   },
   {

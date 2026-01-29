@@ -2,9 +2,11 @@ const router = require("express").Router();
 const sshClient = require("../config/ssh");
 const sshMonitor = require("../utils/sshMonitor");
 const { dummySubscribe } = require("../controllers/pay/dummySubscribe");
+const { subscribe } = require("../controllers/subscribe");
 
 // router.post("/subscribe", generateSTKPush);
 router.post("/dummy-subscribe", dummySubscribe); // For testing purposes
+router.post("/subscribe", subscribe);
 router.post("/deauth", async (req, res) => {
   try {
     const { macAddress } = req.body;

@@ -1,5 +1,11 @@
 const packages = [
   {
+    name: "trial",
+    price: 0,
+    duration: 0.5, // duration in hours
+    description: "Free trial for 30 minutes.",
+  },
+  {
     name: "1hr",
     price: 10,
     duration: 1, // duration in hours

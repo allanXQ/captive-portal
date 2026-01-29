@@ -1,16 +1,16 @@
-const clients = require("../../models/clients");
-const sessions = require("../../models/sessions");
 const mongoose = require("mongoose");
-const packages = require("../../config/packages");
-const triggerStkPush = require("../../utils/daraja/triggerStkPush");
+const triggerStkPush = require("../utils/daraja/triggerStkPush");
+const { packages } = require("../config");
+const clients = require("../models/clients");
+const sessions = require("../models/sessions");
 
 const subscribe = async (req, res) => {
   try {
     const { clientMac, clientIp, phoneNumber, packageName } = req.body;
     const client = await clients.findOne({ macAddress: clientMac });
 
-    const calculateSessionEndTime = (startTime) => {
-      const package = packages.find((p) => p.name === packageName);
+    const calculateSessionEndTime = (startTime, pack) => {
+      const package = packages.find((pkg) => pkg.name === pack);
       if (!package) {
         throw new Error("Invalid package name");
       }
@@ -27,7 +27,7 @@ const subscribe = async (req, res) => {
       try {
         // Start transaction
         await session.startTransaction();
-
+        const pack = "trial";
         // Create new client
         const newClient = new clients({
           phoneNumber,
@@ -40,10 +40,9 @@ const subscribe = async (req, res) => {
         // Create new session for the client
         const newSession = new sessions({
           clientId: savedClient._id,
-          packageName,
-          isTrial: true,
+          packageName: pack,
           startTime: new Date(),
-          endTime: calculateSessionEndTime(),
+          endTime: calculateSessionEndTime(new Date(), pack),
         });
 
         const savedSession = await newSession.save({ session });
@@ -66,9 +65,18 @@ const subscribe = async (req, res) => {
         await session.endSession();
       }
     } else {
+      if (!phoneNumber) {
+        return res
+          .status(400)
+          .json({ error: "Phone number is required for existing clients" });
+      }
       try {
         //trigger payment process here
-        await triggerStkPush(phoneNumber, packages[packageName].price);
+        const price = packages.find((pkg) => pkg.name === packageName)?.price;
+        if (!price) {
+          return res.status(400).json({ error: "Invalid package selected" });
+        }
+        await triggerStkPush(phoneNumber, price);
         return res.status(200).json({
           success: true,
           message: "Payment initiated, complete the payment to start session",

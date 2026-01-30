@@ -9,23 +9,23 @@ const registerUrl = async (req, res) => {
     } = req.body;
 
     const accessToken = await generateAccessToken();
-
+    const auth = `Bearer ${accessToken}`;
+    const url = "https://api.safaricom.co.ke/mpesa/c2b/v2/registerurl";
     const response = await axios.post(
-      "https://api.safaricom.co.ke/mpesa/c2b/v1/registerurl",
+      url,
       {
         ShortCode: process.env.BUSINESS_SHORT_CODE,
         ResponseType: "Completed",
-        ConfirmationURL: `${process.env.BASE_URL}/api/v1/app/${ConfirmationURL}`,
-        ValidationURL: `${process.env.BASE_URL}/api/v1/app/${ValidationURL}`,
+        ConfirmationURL: `${process.env.BASE_URL}/api/v1/${ConfirmationURL}`,
+        ValidationURL: `${process.env.BASE_URL}/api/v1/${ValidationURL}`,
       },
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: auth,
+          "Content-Type": "application/json",
         },
       },
     );
-
-    console.log("Register URL Response:", response.data);
 
     if (response.data.ResponseCode === "0") {
       return res.status(200).json({

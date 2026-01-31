@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const triggerStkPush = require("../utils/daraja/triggerStkPush");
-const { packages } = require("../config");
+const { packages } = require("../config/packages");
 const clients = require("../models/clients");
 const sessions = require("../models/sessions");
 

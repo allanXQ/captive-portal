@@ -1,5 +1,5 @@
 // controllers/lipanampesa.js
-const { packages } = require("../../config");
+const { packages } = require("../../config/packages");
 // const Clients = require("../../models/clients");
 const sshClient = require("../../config/ssh");
 const Clients = require("../../models/clients");
@@ -37,7 +37,7 @@ const dummySubscribe = async (req, res) => {
     } catch (sshError) {
       console.error(
         "Failed to authenticate user via SSH in dummy pay:",
-        sshError.message
+        sshError.message,
       );
       // Continue even if SSH authentication fails
     }

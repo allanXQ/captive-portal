@@ -1,9 +1,10 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
+const { database_url } = require("./envs");
 
 const mongoClient = () => {
   return mongoose
-    .connect(process.env.CLOUD_DB)
+    .connect(database_url)
     .then(() => {
       console.log("Connected to database");
     })

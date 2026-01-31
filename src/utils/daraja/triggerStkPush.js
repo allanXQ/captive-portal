@@ -3,6 +3,7 @@ const axios = require("axios");
 const generateAccessToken = require("./generateAccessToken");
 const getTimeStamp = require("./timestamp");
 const transactions = require("../../models/transactions");
+const { server_url } = require("../../config/envs");
 
 const triggerStkPush = async (phoneNumber, amount) => {
   const accessToken = await generateAccessToken();
@@ -12,7 +13,7 @@ const triggerStkPush = async (phoneNumber, amount) => {
   const password = Buffer.from(
     `${process.env.BUSINESS_SHORT_CODE}${process.env.PASSKEY}${timestamp}`,
   ).toString("base64");
-  const CallBackURL = `${process.env.BASE_URL}/api/v1/c2b-webhook`;
+  const CallBackURL = `${server_url}/api/v1/c2b-webhook`;
   let stkResponse = {};
 
   try {

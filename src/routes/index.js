@@ -50,7 +50,7 @@ router.post("/deauth", async (req, res) => {
   }
 });
 router.get("/packages", (req, res) => {
-  const config = require("../config");
+  const config = require("../config/packages");
   return res.status(200).json({ packages: config.packages });
 });
 

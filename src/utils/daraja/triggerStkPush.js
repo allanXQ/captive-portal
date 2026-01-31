@@ -13,7 +13,7 @@ const triggerStkPush = async (phoneNumber, amount) => {
   const password = Buffer.from(
     `${process.env.BUSINESS_SHORT_CODE}${process.env.PASSKEY}${timestamp}`,
   ).toString("base64");
-  const CallBackURL = `${server_url}/api/v1/c2b-webhook`;
+  const CallBackURL = `${server_url}/api/v1/stk-webhook`;
   let stkResponse = {};
 
   try {

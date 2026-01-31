@@ -12,7 +12,7 @@ const triggerStkPush = async (phoneNumber, amount) => {
   const password = Buffer.from(
     `${process.env.BUSINESS_SHORT_CODE}${process.env.PASSKEY}${timestamp}`,
   ).toString("base64");
-  const CallBackURL = `${process.env.BASE_URL}/api/v1/daraja/c2b-webhook`;
+  const CallBackURL = `${process.env.BASE_URL}/api/v1/c2b-webhook`;
   let stkResponse = {};
 
   try {
@@ -38,6 +38,8 @@ const triggerStkPush = async (phoneNumber, amount) => {
         },
       },
     );
+    console.log(CallBackURL);
+    console.log("STK Push Response:", stkResponse.data);
     // log response
   } catch (error) {
     console.log("STK Push request failed:", error);

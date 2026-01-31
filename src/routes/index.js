@@ -4,14 +4,13 @@ const sshMonitor = require("../utils/sshMonitor");
 const { dummySubscribe } = require("../controllers/pay/dummySubscribe");
 const { subscribe } = require("../controllers/subscribe");
 const registerUrl = require("../controllers/daraja/registerUrls");
-const { darajaWebhook } = require("../controllers/daraja/darajaWebhook");
+const { stkWebhook } = require("../controllers/daraja/stkWebhook");
 
-// router.post("/subscribe", generateSTKPush);
 router.post("/dummy-subscribe", dummySubscribe); // For testing purposes
 router.post("/subscribe", subscribe);
 router.post("/register-urls", registerUrl);
-router.post("/c2b-confirmation", darajaWebhook);
-// router.post("/c2b-validation", darajaWebhook);
+router.post("/stk-webhook", stkWebhook);
+// router.post("/c2b-validation", stkWebhook);
 router.post("/deauth", async (req, res) => {
   try {
     const { macAddress } = req.body;

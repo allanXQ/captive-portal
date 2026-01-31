@@ -3,7 +3,7 @@
 // const sshClient = require("../../config/ssh");
 // const { authenticateUser } = require("../router");
 
-const darajaWebhook = async (req, res) => {
+const stkWebhook = async (req, res) => {
   try {
     //transactions
     const { phoneNumber, amount, mpesaReceiptNumber, transactionDate } =
@@ -33,4 +33,4 @@ const darajaWebhook = async (req, res) => {
   }
 };
 
-module.exports = { darajaWebhook };
+module.exports = { stkWebhook };

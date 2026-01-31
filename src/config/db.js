@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 
 const mongoClient = () => {
   return mongoose
-    .connect(process.env.DATABASE)
+    .connect(process.env.CLOUD_DB)
     .then(() => {
       console.log("Connected to database");
     })
@@ -13,4 +13,4 @@ const mongoClient = () => {
     });
 };
 
-module.exports = {mongoClient};
+module.exports = { mongoClient };

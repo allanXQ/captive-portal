@@ -76,50 +76,11 @@ const subscribe = async (req, res) => {
         if (!price) {
           return res.status(400).json({ error: "Invalid package selected" });
         }
-        await triggerStkPush(phoneNumber, price);
+        await triggerStkPush(phoneNumber, price, client._id);
         return res.status(200).json({
           success: true,
           message: "Payment initiated, complete the payment to start session",
         });
-        // TODO: migrate to daraja webhooks to confirm payment before starting session
-        // //check if client has an active session
-        // const activeSession = await sessions.findOne({
-        //   clientId: client._id,
-        //   status: "active",
-        // });
-        // if (activeSession) {
-        //   // create new session with deferred start time
-        //   const deferredStartTime = activeSession.endTime;
-        //   const newSession = new sessions({
-        //     clientId: client._id,
-        //     packageName,
-        //     status: "active",
-        //     startTime: deferredStartTime,
-        //     endTime: calculateSessionEndTime(deferredStartTime),
-        //   });
-        //   const savedSession = await newSession.save();
-        //   return res.status(201).json({
-        //     success: true,
-        //     message:
-        //       "New session will start after the current active session ends",
-        //     session: savedSession,
-        //   });
-        // } else {
-        //   // create new session starting now
-        //   const newSession = new sessions({
-        //     clientId: client._id,
-        //     packageName,
-        //     status: "active",
-        //     startTime: new Date(),
-        //     endTime: calculateSessionEndTime(new Date()),
-        //   });
-        //   const savedSession = await newSession.save();
-        //   return res.status(201).json({
-        //     success: true,
-        //     message: "New session has started",
-        //     session: savedSession,
-        //   });
-        // }
       } catch (error) {
         throw error;
       }

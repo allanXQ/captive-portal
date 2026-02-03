@@ -16,8 +16,8 @@ const sessionsSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["active", "paused", "expired"],
-      default: "active",
+      enum: ["ACTIVE", "PAUSED", "EXPIRED", "DEFERRED"],
+      default: "ACTIVE",
     },
     packageName: {
       type: String,

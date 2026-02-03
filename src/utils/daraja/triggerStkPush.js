@@ -5,7 +5,7 @@ const getTimeStamp = require("./timestamp");
 const transactions = require("../../models/transactions");
 const { server_url } = require("../../config/envs");
 
-const triggerStkPush = async (phoneNumber, amount) => {
+const triggerStkPush = async (phoneNumber, amount, clientId) => {
   const accessToken = await generateAccessToken();
   const timestamp = getTimeStamp();
   const url = "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
@@ -53,6 +53,7 @@ const triggerStkPush = async (phoneNumber, amount) => {
   }
 
   await transactions.create({
+    ClientId: clientId,
     Amount: amount,
     PhoneNumber: phoneNumber,
     MerchantRequestID: stkResponse.data.MerchantRequestID,

@@ -2,9 +2,10 @@ const transactions = require("../../models/transactions");
 const sessions = require("../../models/sessions");
 const clients = require("../../models/clients");
 const mongoose = require("mongoose");
-const packages = require("../../config/packages");
+const { packages } = require("../../config/packages");
 // const config = require("../../config");
-// const sshClient = require("../../config/ssh");
+const sshClient = require("../../config/ssh");
+const userAuth = require("../../utils/ssh/userAuth");
 // const { authenticateUser } = require("../router");
 
 const stkWebhook = async (req, res) => {
@@ -16,7 +17,6 @@ const stkWebhook = async (req, res) => {
       ResponseCode,
       ResponseDescription,
     } = req.body.Body.stkCallback;
-    console.log(req.body);
     if (
       !MerchantRequestID ||
       !CheckoutRequestID ||
@@ -43,6 +43,7 @@ const stkWebhook = async (req, res) => {
       );
 
       if (existingTransaction) {
+        await session.abortTransaction();
         return res.status(200).json({ message: "Duplicate operation" });
       }
 
@@ -62,7 +63,7 @@ const stkWebhook = async (req, res) => {
           { session },
         );
         // TODO: Emit event for failed transaction
-        await session.commitTransaction();
+        await session.abortTransaction();
         return res //daraja requires 200 OK for all responses
           .status(200)
           .json({ message: "Payment Failed", details: ResponseDescription });
@@ -91,6 +92,10 @@ const stkWebhook = async (req, res) => {
       const package = packages.find(
         (pkg) => pkg.price === parseInt(transaction.Amount),
       );
+      if (!package) {
+        await session.abortTransaction();
+        throw new Error("No matching package for the paid amount");
+      }
       const calculateSessionEndTime = (startTime) => {
         if (!package) {
           throw new Error("Invalid package name");
@@ -100,10 +105,14 @@ const stkWebhook = async (req, res) => {
           : new Date(Date.now() + package.duration * 60 * 60 * 1000);
       };
       //check if client has an active session
-      const activeSession = await sessions.findOne({
-        clientId: transaction.ClientId,
-        status: "active",
-      });
+      const activeSession = await sessions.findOne(
+        {
+          clientId: transaction.ClientId,
+          status: "ACTIVE",
+        },
+        null,
+        { session },
+      );
       if (activeSession) {
         // create new session with deferred start time
         const deferredStartTime = activeSession.endTime;
@@ -116,7 +125,7 @@ const stkWebhook = async (req, res) => {
         });
         const savedSession = await newSession.save({ session });
         await session.commitTransaction();
-        return res.status(201).json({
+        return res.status(200).json({
           success: true,
           message:
             "New session will start after the current active session ends",
@@ -133,32 +142,15 @@ const stkWebhook = async (req, res) => {
         });
         await newSession.save({ session });
         await session.commitTransaction();
+        await userAuth(transaction.ClientId);
+        return res.status(200).json({ message: "payment success" });
       }
-
-      // Commit the transaction
-      await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
       throw error;
     } finally {
       await session.endSession();
     }
-    // const client = await clients.findOne({ phoneNumber })
-
-    // Try to authenticate user, but don't fail if SSH is down
-    // try {
-    //   if (sshClient.isConnectionHealthy()) {
-    //     await sshClient.authenticateUser(client.macAddress);
-    //     console.log("User authenticated successfully");
-    //   } else {
-    //     console.warn("SSH connection not available, user will be authenticated when connection is restored");
-    //   }
-    // } catch (sshError) {
-    //   console.error("Failed to authenticate user via SSH:", sshError.message);
-    //   // Continue processing payment even if SSH authentication fails
-    // }
-
-    return res.status(200).json({ message: "payment success" });
   } catch (error) {
     console.error("Webhook processing error:", error);
     return res.status(500).json({ message: "payment processing failed" });

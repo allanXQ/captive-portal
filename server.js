@@ -41,14 +41,14 @@ async function startServer() {
     await mongoClient();
 
     // Try to connect to SSH, but don't fail if it's not available
-    // try {
-    //   await sshClient.connect();
-    // } catch (sshError) {
-    //   console.warn("SSH connection failed during startup:", sshError.message);
-    //   console.warn(
-    //     "Server will continue running, SSH will retry connection automatically",
-    //   );
-    // }
+    try {
+      await sshClient.connect();
+    } catch (sshError) {
+      console.warn("SSH connection failed during startup:", sshError.message);
+      console.warn(
+        "Server will continue running, SSH will retry connection automatically",
+      );
+    }
 
     // Add global error handlers to prevent crashes
     process.on("uncaughtException", (error) => {

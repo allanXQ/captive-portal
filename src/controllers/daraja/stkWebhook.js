@@ -125,6 +125,7 @@ const stkWebhook = async (req, res) => {
         });
         const savedSession = await newSession.save({ session });
         await session.commitTransaction();
+        session = null; // Clear session reference before SSH auth
         return res.status(200).json({
           success: true,
           message:
@@ -142,14 +143,15 @@ const stkWebhook = async (req, res) => {
         });
         await newSession.save({ session });
         await session.commitTransaction();
+        session = null; // Clear session reference before SSH auth
         await userAuth(transaction.ClientId);
         return res.status(200).json({ message: "payment success" });
       }
     } catch (error) {
-      await session.abortTransaction();
+      session && (await session.abortTransaction());
       throw error;
     } finally {
-      await session.endSession();
+      session && (await session.endSession());
     }
   } catch (error) {
     console.error("Webhook processing error:", error);

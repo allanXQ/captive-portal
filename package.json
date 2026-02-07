@@ -10,6 +10,8 @@
   "author": "Allan Juma",
   "license": "ISC",
   "dependencies": {
+    "@agendajs/mongo-backend": "^3.0.0",
+    "agenda": "^6.2.0",
     "axios": "^1.6.5",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

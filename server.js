@@ -4,6 +4,7 @@ const cors = require("cors");
 const sshClient = require("./src/config/ssh");
 const { mongoClient } = require("./src/config/db");
 const sshMonitor = require("./src/utils/sshMonitor");
+const agenda = require("./src/tasks/index");
 
 const app = express();
 app.use(express.json());
@@ -39,6 +40,7 @@ async function startServer() {
   try {
     // Connect to MongoDB first
     await mongoClient();
+    await agenda();
 
     // Try to connect to SSH, but don't fail if it's not available
     try {

@@ -4,7 +4,7 @@ const cors = require("cors");
 const sshClient = require("./src/config/ssh");
 const { mongoClient } = require("./src/config/db");
 const sshMonitor = require("./src/utils/sshMonitor");
-const agenda = require("./src/tasks/index");
+const { initAgenda } = require("./src/tasks/agenda");
 
 const app = express();
 app.use(express.json());
@@ -38,54 +38,16 @@ const port = process.env.PORT || 5000;
 
 async function startServer() {
   try {
-    // Connect to MongoDB first
     await mongoClient();
-    await agenda();
+    await sshClient.connect();
+    await initAgenda();
 
-    // Try to connect to SSH, but don't fail if it's not available
-    try {
-      await sshClient.connect();
-    } catch (sshError) {
-      console.warn("SSH connection failed during startup:", sshError.message);
-      console.warn(
-        "Server will continue running, SSH will retry connection automatically",
-      );
-    }
-
-    // Add global error handlers to prevent crashes
-    process.on("uncaughtException", (error) => {
-      console.error("Uncaught Exception:", error);
-      // Don't exit the process for SSH-related errors
-      if (
-        !error.message.includes("Keepalive timeout") &&
-        !error.message.includes("SSH")
-      ) {
-        console.error("Fatal error occurred, exiting...");
-        process.exit(1);
-      }
-    });
-
-    process.on("unhandledRejection", (reason, promise) => {
-      console.error("Unhandled Rejection at:", promise, "reason:", reason);
-      // Don't exit for SSH-related rejections
-      if (
-        !String(reason).includes("SSH") &&
-        !String(reason).includes("Keepalive")
-      ) {
-        console.error("Fatal rejection occurred, exiting...");
-        process.exit(1);
-      }
-    });
-
-    // Graceful shutdown handling
     process.on("SIGINT", gracefulShutdown);
     process.on("SIGTERM", gracefulShutdown);
 
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
-
-      // Start SSH connection monitoring
-      // sshMonitor.startMonitoring();
+      sshMonitor.startMonitoring();
     });
   } catch (error) {
     console.error("Failed to start server:", error);
@@ -97,15 +59,15 @@ function gracefulShutdown() {
   console.log("\nGracefully shutting down server...");
 
   // Stop SSH monitoring
-  // sshMonitor.stopMonitoring();
+  sshMonitor.stopMonitoring();
 
   // Close SSH connection
-  // try {
-  //   sshClient.disconnect();
-  //   console.log("SSH connection closed");
-  // } catch (error) {
-  //   console.error("Error closing SSH connection:", error.message);
-  // }
+  try {
+    sshClient.disconnect();
+    console.log("SSH connection closed");
+  } catch (error) {
+    console.error("Error closing SSH connection:", error.message);
+  }
 
   // Exit the process
   process.exit(0);

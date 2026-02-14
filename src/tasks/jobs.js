@@ -3,74 +3,78 @@ const sessions = require("../models/sessions");
 
 const sshClient = getSshClientshClient();
 
-const processDeferredSessions = async (job) => {
-  console.log("Running job: process deferred sessions");
-  // TODO: ACCOUNT FOR SESSIONS THAT HAD THEIR DEFERRED TIME PASSED WHILE SSH WAS DOWN
-  if (sshClient.isConnectionHealthy()) {
-    try {
-      const deferredSessions = await sessions
-        .find({
-          status: "DEFERRED",
-          startTime: { $lte: new Date() },
-        })
-        .populate("clientId");
-      if (deferredSessions) {
-        for (const session of deferredSessions) {
-          try {
-            sshClient.authenticateUser(session.clientId.macAddress);
-            session.status = "ACTIVE";
-            await session.save();
-            console.log(
-              `Processed deferred session ${session._id} for client ${session.clientId.macAddress}`,
-            );
-          } catch (error) {
-            console.error(
-              `Failed to process deferred session ${session._id}:`,
-              error,
-            );
-            // TODO: LOGGER
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error processing deferred auths:", error);
-    }
-  } else {
-    console.warn(
-      "SSH connection not healthy, skipping deferred session processing",
-    );
-  }
-};
-// TODO: RECHECK SSH HEALTH MONITORING BY CONNECTING TO SSH SUCCESSFULY THE DISCONNECTING FROM WIFI NETWORK TO SEE IF SSH HEALTH CHECKS FAIL AND JOBS ARE SKIPPED, THEN RECONNECTING TO WIFI TO SEE IF JOBS RESUME PROCESSING DEFERRED SESSIONS
-const deauthExpiredSessions = async (job) => {
-  console.log("Running job: deauth expired sessions");
+const processSessionTransitions = async (job) => {
+  console.log("Running job: process session transitions");
+
   try {
-    const expiredSessions = await sessions
-      .find({
-        status: "ACTIVE",
-        endTime: { $lte: new Date() },
-      })
-      .populate("clientId");
-    if (expiredSessions) {
-      for (const session of expiredSessions) {
-        try {
-          sshClient.deauthenticateUser(session.clientId.macAddress);
+    const now = new Date();
+
+    // Group sessions by clientId to handle transitions atomically
+    const clientsToProcess = await sessions.aggregate([
+      {
+        $match: {
+          $or: [
+            { status: "ACTIVE", endTime: { $lte: now } },
+            { status: "DEFERRED", startTime: { $lte: now } },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: "$clientId",
+          sessions: { $push: "$$ROOT" },
+        },
+      },
+    ]);
+
+    for (const clientGroup of clientsToProcess) {
+      const clientId = clientGroup._id;
+      const clientSessions = await sessions
+        .find({ _id: { $in: clientGroup.sessions.map((s) => s._id) } })
+        .populate("clientId")
+        .sort({ startTime: 1 }); // Process in chronological order
+
+      let shouldAuth = false;
+      let shouldDeauth = false;
+      let macAddress = null;
+
+      for (const session of clientSessions) {
+        macAddress = session.clientId.macAddress;
+
+        // Handle expired sessions
+        if (session.status === "ACTIVE" && session.endTime <= now) {
           session.status = "EXPIRED";
           await session.save();
-          console.log(
-            `Deauthenticated expired session ${session._id} for client ${session.clientId.macAddress}`,
-          );
-        } catch (error) {
-          console.error(
-            `Failed to deauthenticate expired session ${session._id}:`,
-            error,
-          );
+          shouldDeauth = true;
+          console.log(`📤 Marking session ${session._id} as expired`);
         }
+
+        // Handle deferred sessions
+        if (session.status === "DEFERRED" && session.startTime <= now) {
+          session.status = "ACTIVE";
+          await session.save();
+          shouldAuth = true;
+          console.log(`📥 Activating deferred session ${session._id}`);
+        }
+      }
+
+      // Apply final state (auth overrides deauth if both needed)
+      if (shouldAuth && shouldDeauth) {
+        console.log(
+          `🔄 Client ${macAddress} transitioning from expired to new session`,
+        );
+        await sshClient.authenticateUser(macAddress);
+      } else if (shouldAuth) {
+        console.log(`✅ Authenticating ${macAddress}`);
+        await sshClient.authenticateUser(macAddress);
+      } else if (shouldDeauth) {
+        console.log(`❌ Deauthenticating ${macAddress}`);
+        await sshClient.deauthenticateUser(macAddress);
       }
     }
   } catch (error) {
-    console.error("Error deauthenticating expired sessions:", error);
+    console.error("Error processing session transitions:", error);
   }
 };
 
-module.exports = { processDeferredSessions, deauthExpiredSessions };
+module.exports = { processSessionTransitions };

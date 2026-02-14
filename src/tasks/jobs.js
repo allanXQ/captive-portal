@@ -1,5 +1,10 @@
 const getSshClientshClient = require("../config/ssh");
 const sessions = require("../models/sessions");
+const transactions = require("../models/transactions");
+const queryStkStatus = require("../utils/daraja/queryStkStatus");
+const {
+  processTransactionStatus,
+} = require("../utils/daraja/processTransactionStatus");
 
 const sshClient = getSshClientshClient();
 
@@ -77,4 +82,62 @@ const processSessionTransitions = async (job) => {
   }
 };
 
-module.exports = { processSessionTransitions };
+const pollPendingTransactions = async () => {
+  console.log("Running job: poll pending transactions");
+
+  try {
+    const cutoffTime = new Date(Date.now() - 60 * 1000);
+    const pendingTransactions = await transactions
+      .find({ Status: "PENDING", createdAt: { $lte: cutoffTime } })
+      .sort({ createdAt: 1 })
+      .limit(25);
+
+    if (pendingTransactions.length === 0) {
+      console.log("No pending transactions to poll");
+      return;
+    }
+
+    for (const transaction of pendingTransactions) {
+      try {
+        const response = await queryStkStatus(transaction.CheckoutRequestID);
+
+        if (!response) {
+          console.warn(
+            `No response for transaction ${transaction.CheckoutRequestID}`,
+          );
+          continue;
+        }
+
+        if (String(response.ResponseCode) !== "0") {
+          console.warn(
+            `STK query rejected for ${transaction.CheckoutRequestID}: ${response.ResponseDescription || response.ResponseCode}`,
+          );
+          continue;
+        }
+
+        if (response.ResultCode === undefined || response.ResultCode === null) {
+          console.log(
+            `Transaction still pending: ${transaction.CheckoutRequestID}`,
+          );
+          continue;
+        }
+
+        await processTransactionStatus({
+          MerchantRequestID: transaction.MerchantRequestID,
+          CheckoutRequestID: transaction.CheckoutRequestID,
+          ResultCode: response.ResultCode,
+          ResultDesc: response.ResultDesc || response.ResultDescription,
+        });
+      } catch (error) {
+        console.error(
+          `Failed to poll transaction ${transaction.CheckoutRequestID}:`,
+          error.message || error,
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error polling pending transactions:", error);
+  }
+};
+
+module.exports = { processSessionTransitions, pollPendingTransactions };

@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
 const Agenda = require("agenda");
 const { database_url } = require("../config/envs");
-const { processSessionTransitions } = require("./jobs");
+const {
+  processSessionTransitions,
+  pollPendingTransactions,
+} = require("./jobs");
 
 let agenda;
 
@@ -17,6 +20,7 @@ async function initAgenda() {
     });
 
     agenda.define("process session transitions", processSessionTransitions);
+    agenda.define("poll pending transactions", pollPendingTransactions);
 
     await new Promise((resolve, reject) => {
       agenda.on("ready", () => {
@@ -32,6 +36,7 @@ async function initAgenda() {
     await agenda.start();
 
     await agenda.every("10 seconds", "process session transitions");
+    await agenda.every("5 seconds", "poll pending transactions");
 
     console.log("🚀 Agenda started & job scheduled");
     return agenda;

@@ -6,6 +6,8 @@ const { mongoClient } = require("./src/config/db");
 const { initAgenda } = require("./src/tasks/agenda");
 
 const app = express();
+const sshClient = getSshClient();
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -36,11 +38,9 @@ app.use("/api/v1", require("./src/routes/index"));
 const port = process.env.PORT || 5000;
 
 async function startServer() {
-  const sshClient = getSshClient();
   try {
     await mongoClient();
     await sshClient.connect();
-    await initAgenda();
 
     process.on("SIGINT", gracefulShutdown);
     process.on("SIGTERM", gracefulShutdown);
@@ -48,6 +48,7 @@ async function startServer() {
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
     });
+    await initAgenda();
   } catch (error) {
     console.error("Failed to start server:", error);
     throw error;

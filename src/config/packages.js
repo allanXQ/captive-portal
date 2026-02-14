@@ -8,7 +8,7 @@ const packages = [
   {
     name: "1hr",
     price: 10,
-    duration: 1, // duration in hours
+    duration: 0.03333333, // duration in hours
     description: "Perfect for quick online tasks.",
   },
   {

@@ -4,7 +4,8 @@ const { router_creds } = require("./envs");
 class RouterSSHClient {
   constructor() {
     this.ssh = new NodeSSH();
-
+    this.instanceId = Math.random().toString(36).substring(7);
+    console.log(`🆔 SSH Client instance created: ${this.instanceId}`);
     this.isConnected = false;
     this.connectingPromise = null;
 
@@ -27,10 +28,12 @@ class RouterSSHClient {
 
     this.connectingPromise = (async () => {
       try {
-        if (this.ssh.connection) {
+        if (this.ssh.connection && !this.ssh.connection.destroyed) {
+          console.log("🧹 Disposing old connection");
           this.ssh.dispose();
-          this.ssh = new NodeSSH();
         }
+
+        this.ssh = new NodeSSH();
 
         await this.ssh.connect({
           ...router_creds,
@@ -86,8 +89,20 @@ class RouterSSHClient {
       this.handleDisconnection();
     });
 
-    conn.on("close", () => {
-      console.warn("SSH connection closed");
+    conn.on("close", (hadError) => {
+      const reason = hadError ? "due to error" : "cleanly";
+      const connState = {
+        destroyed: conn.destroyed,
+        writable: conn.writable,
+        readable: conn.readable,
+        bytesRead: conn.bytesRead,
+        bytesWritten: conn.bytesWritten,
+      };
+
+      console.warn(`🔌 SSH connection closed ${reason}`);
+      console.warn("Connection state:", connState);
+      console.warn("Had error:", hadError);
+
       this.handleDisconnection();
     });
 
@@ -126,12 +141,22 @@ class RouterSSHClient {
   }
 
   isConnectionHealthy() {
-    return (
-      this.isConnected &&
-      this.ssh.connection &&
-      !this.ssh.connection.destroyed &&
-      this.ssh.connection.writable
-    );
+    try {
+      if (!this.isConnected) return false;
+      if (!this.ssh.connection) return false;
+
+      const conn = this.ssh.connection;
+
+      // Check multiple indicators
+      if (conn.destroyed === true) return false;
+      if (conn.writable === false) return false;
+      if (conn.readable === false) return false;
+
+      return true;
+    } catch (err) {
+      console.error("Health check error:", err.message);
+      return false;
+    }
   }
 
   disconnect() {

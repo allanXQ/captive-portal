@@ -1,12 +1,8 @@
 const transactions = require("../../models/transactions");
 const sessions = require("../../models/sessions");
-const clients = require("../../models/clients");
 const mongoose = require("mongoose");
 const { packages } = require("../../config/packages");
-// const config = require("../../config");
-const sshClient = require("../../config/ssh");
 const userAuth = require("../../utils/ssh/userAuth");
-// const { authenticateUser } = require("../router");
 
 const stkWebhook = async (req, res) => {
   try {
@@ -144,7 +140,7 @@ const stkWebhook = async (req, res) => {
         await newSession.save({ session });
         await session.commitTransaction();
         session = null; // Clear session reference before SSH auth
-        await userAuth(transaction.ClientId);
+        await userAuth(transaction.ClientId, "AUTH");
         return res.status(200).json({ message: "payment success" });
       }
     } catch (error) {

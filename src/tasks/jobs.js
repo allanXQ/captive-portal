@@ -1,5 +1,7 @@
-const sshClient = require("../config/ssh");
+const getSshClientshClient = require("../config/ssh");
 const sessions = require("../models/sessions");
+
+const sshClient = getSshClientshClient();
 
 const processDeferredSessions = async (job) => {
   console.log("Running job: process deferred sessions");
@@ -42,38 +44,32 @@ const processDeferredSessions = async (job) => {
 // TODO: RECHECK SSH HEALTH MONITORING BY CONNECTING TO SSH SUCCESSFULY THE DISCONNECTING FROM WIFI NETWORK TO SEE IF SSH HEALTH CHECKS FAIL AND JOBS ARE SKIPPED, THEN RECONNECTING TO WIFI TO SEE IF JOBS RESUME PROCESSING DEFERRED SESSIONS
 const deauthExpiredSessions = async (job) => {
   console.log("Running job: deauth expired sessions");
-  if (sshClient.isConnectionHealthy()) {
-    try {
-      const expiredSessions = await sessions
-        .find({
-          status: "ACTIVE",
-          endTime: { $lte: new Date() },
-        })
-        .populate("clientId");
-      if (expiredSessions) {
-        for (const session of expiredSessions) {
-          try {
-            sshClient.deauthenticateUser(session.clientId.macAddress);
-            session.status = "EXPIRED";
-            await session.save();
-            console.log(
-              `Deauthenticated expired session ${session._id} for client ${session.clientId.macAddress}`,
-            );
-          } catch (error) {
-            console.error(
-              `Failed to deauthenticate expired session ${session._id}:`,
-              error,
-            );
-          }
+  try {
+    const expiredSessions = await sessions
+      .find({
+        status: "ACTIVE",
+        endTime: { $lte: new Date() },
+      })
+      .populate("clientId");
+    if (expiredSessions) {
+      for (const session of expiredSessions) {
+        try {
+          sshClient.deauthenticateUser(session.clientId.macAddress);
+          session.status = "EXPIRED";
+          await session.save();
+          console.log(
+            `Deauthenticated expired session ${session._id} for client ${session.clientId.macAddress}`,
+          );
+        } catch (error) {
+          console.error(
+            `Failed to deauthenticate expired session ${session._id}:`,
+            error,
+          );
         }
       }
-    } catch (error) {
-      console.error("Error deauthenticating expired sessions:", error);
     }
-  } else {
-    console.warn(
-      "SSH connection not healthy, skipping expired session deauthentication",
-    );
+  } catch (error) {
+    console.error("Error deauthenticating expired sessions:", error);
   }
 };
 

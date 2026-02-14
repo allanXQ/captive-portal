@@ -6,18 +6,15 @@ const userAuth = require("../../utils/ssh/userAuth");
 
 const stkWebhook = async (req, res) => {
   try {
+    console.log("Received STK webhook:", JSON.stringify(req.body));
     //transactions
-    const {
-      MerchantRequestID,
-      CheckoutRequestID,
-      ResponseCode,
-      ResponseDescription,
-    } = req.body.Body.stkCallback;
+    const { MerchantRequestID, CheckoutRequestID, ResultCode, ResultDesc } =
+      req.body.Body.stkCallback;
     if (
       !MerchantRequestID ||
       !CheckoutRequestID ||
-      ResponseCode === undefined ||
-      !ResponseDescription
+      ResultCode === undefined ||
+      !ResultDesc
     ) {
       return res.status(400).json({ message: "Invalid webhook payload" });
       // TODO: EMIT EVENT FOR INVALID PAYLOAD
@@ -43,7 +40,7 @@ const stkWebhook = async (req, res) => {
         return res.status(200).json({ message: "Duplicate operation" });
       }
 
-      if (parseInt(ResponseCode) !== 0) {
+      if (parseInt(ResultCode) !== 0) {
         await transactions.updateOne(
           {
             MerchantRequestID,
@@ -51,18 +48,18 @@ const stkWebhook = async (req, res) => {
           },
           {
             $set: {
-              ResponseCode,
-              ResponseDescription,
+              ResultCode,
+              ResultDesc,
               Status: "FAILED",
             },
           },
           { session },
         );
         // TODO: Emit event for failed transaction
-        await session.abortTransaction();
+        await session.commitTransaction();
         return res //daraja requires 200 OK for all responses
           .status(200)
-          .json({ message: "Payment Failed", details: ResponseDescription });
+          .json({ message: "Payment Failed", details: ResultDesc });
       }
 
       const transaction = await transactions.findOneAndUpdate(
@@ -72,8 +69,8 @@ const stkWebhook = async (req, res) => {
         },
         {
           $set: {
-            ResponseCode,
-            ResponseDescription,
+            ResultCode,
+            ResultDesc,
             Status: "PROCESSED",
           },
         },

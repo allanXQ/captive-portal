@@ -4,198 +4,248 @@ const { router_creds } = require("./envs");
 class RouterSSHClient {
   constructor() {
     this.ssh = new NodeSSH();
+
     this.isConnected = false;
+    this.connectingPromise = null;
+
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 5000; // 5 seconds
-    this.setupEventHandlers();
+    this.baseReconnectDelay = 5000;
+
+    this.commandQueue = Promise.resolve();
+
+    this.setupProcessHooks();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* CONNECTION MANAGEMENT */
+  /* ------------------------------------------------------------------ */
+
+  async connect() {
+    if (this.isConnectionHealthy()) return;
+    if (this.connectingPromise) return this.connectingPromise;
+
+    this.connectingPromise = (async () => {
+      try {
+        if (this.ssh.connection) {
+          this.ssh.dispose();
+          this.ssh = new NodeSSH();
+        }
+
+        await this.ssh.connect({
+          ...router_creds,
+          keepaliveInterval: 30000,
+          keepaliveCountMax: 3,
+          readyTimeout: 20000,
+          algorithms: {
+            serverHostKey: [
+              "ssh-rsa", // ← REQUIRED for many routers
+              "ecdsa-sha2-nistp256",
+              "ecdsa-sha2-nistp384",
+              "ecdsa-sha2-nistp521",
+            ],
+            kex: [
+              "diffie-hellman-group14-sha256",
+              "ecdh-sha2-nistp256",
+              "ecdh-sha2-nistp384",
+              "ecdh-sha2-nistp521",
+            ],
+            cipher: ["aes128-ctr", "aes192-ctr", "aes256-ctr"],
+            hmac: ["hmac-sha2-256", "hmac-sha2-512", "hmac-sha1"],
+          },
+        });
+
+        this.isConnected = true;
+        this.reconnectAttempts = 0;
+
+        this.setupEventHandlers();
+
+        console.log("✅ SSH connected to router");
+      } catch (error) {
+        this.isConnected = false;
+        console.error("❌ SSH connection failed:", error.message);
+        throw error;
+      } finally {
+        this.connectingPromise = null;
+      }
+    })();
+
+    return this.connectingPromise;
   }
 
   setupEventHandlers() {
-    // Handle connection errors to prevent crashes
-    this.ssh.connection?.on("error", (err) => {
-      console.error("SSH connection error:", err.message);
-      this.isConnected = false;
+    const conn = this.ssh.connection;
+    if (!conn) return;
+
+    conn.removeAllListeners("error");
+    conn.removeAllListeners("close");
+    conn.removeAllListeners("timeout");
+
+    conn.on("error", (err) => {
+      console.error("SSH error:", err.message);
       this.handleDisconnection();
     });
 
-    this.ssh.connection?.on("close", () => {
-      console.log("SSH connection closed");
-      this.isConnected = false;
+    conn.on("close", () => {
+      console.warn("SSH connection closed");
       this.handleDisconnection();
     });
 
-    this.ssh.connection?.on("timeout", () => {
-      console.log("SSH connection timeout");
-      this.isConnected = false;
+    conn.on("timeout", () => {
+      console.warn("SSH timeout");
       this.handleDisconnection();
     });
   }
 
   async handleDisconnection() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(
-        `Attempting to reconnect to SSH (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`,
-      );
+    this.isConnected = false;
 
-      setTimeout(async () => {
-        try {
-          await this.connect();
-          this.reconnectAttempts = 0; // Reset on successful connection
-        } catch (error) {
-          console.error(
-            `Reconnection attempt ${this.reconnectAttempts} failed:`,
-            error.message,
-          );
-        }
-      }, this.reconnectDelay);
-    } else {
-      console.error(
-        "Maximum reconnection attempts reached. SSH connection lost permanently.",
-      );
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error("🚨 Max reconnection attempts reached. Giving up.");
+      return;
     }
-  }
 
-  async connect() {
-    if (this.isConnected) return;
+    this.reconnectAttempts++;
 
-    try {
-      // Dispose any existing connection
-      if (this.ssh.connection) {
-        this.ssh.dispose();
-        this.ssh = new NodeSSH();
-      }
+    const delay = Math.min(
+      60000,
+      this.baseReconnectDelay * 2 ** (this.reconnectAttempts - 1),
+    );
 
-      await this.ssh.connect({
-        ...router_creds,
-        keepaliveInterval: 30000, // Increased to 30 seconds
-        keepaliveCountMax: 3,
-        readyTimeout: 20000, // 20 second timeout for connection
-        algorithms: {
-          // Use more reliable algorithms
-          serverHostKey: [
-            "ssh-rsa",
-            "ecdsa-sha2-nistp256",
-            "ecdsa-sha2-nistp384",
-            "ecdsa-sha2-nistp521",
-          ],
-          kex: [
-            "diffie-hellman-group14-sha256",
-            "ecdh-sha2-nistp256",
-            "ecdh-sha2-nistp384",
-            "ecdh-sha2-nistp521",
-          ],
-          cipher: ["aes128-ctr", "aes192-ctr", "aes256-ctr"],
-          hmac: ["hmac-sha2-256", "hmac-sha2-512", "hmac-sha1"],
-        },
-      });
+    console.log(
+      `🔁 Reconnecting attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`,
+    );
 
-      this.isConnected = true;
-      this.setupEventHandlers(); // Re-setup handlers for new connection
-      console.log("SSH connected to router");
-    } catch (error) {
-      console.error("SSH connection failed:", error.message);
-      this.isConnected = false;
-      process.exit(0);
-    }
-  }
-
-  async executeCommand(command) {
-    let retries = 2;
-
-    while (retries > 0) {
+    setTimeout(async () => {
       try {
-        if (!this.isConnected) {
-          await this.connect();
-        }
-
-        const result = await this.ssh.execCommand(command);
-        return result;
-      } catch (error) {
-        console.error(`Command execution failed: ${error.message}`);
-        this.isConnected = false;
-        retries--;
-
-        if (retries > 0) {
-          console.log(
-            `Retrying command execution... (${retries} attempts left)`,
-          );
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
-        } else {
-          console.error(
-            `Command execution failed after all retries: ${command}`,
-          );
-          throw error;
-        }
+        await this.connect();
+      } catch (err) {
+        console.error("Reconnect failed:", err.message);
       }
-    }
-  }
-
-  async authenticateUser(macAddress) {
-    try {
-      macAddress = macAddress.toLowerCase();
-      return await this.executeCommand(`ndsctl auth ${macAddress}`);
-    } catch (error) {
-      console.error(
-        `Failed to authenticate user ${macAddress}:`,
-        error.message,
-      );
-      throw error;
-    }
-  }
-
-  async deauthenticateUser(macAddress) {
-    try {
-      macAddress = macAddress.toLowerCase();
-      return await this.executeCommand(`ndsctl deauth ${macAddress}`);
-    } catch (error) {
-      console.error(
-        `Failed to deauthenticate user ${macAddress}:`,
-        error.message,
-      );
-      throw error;
-    }
-  }
-
-  async getStatus() {
-    try {
-      return await this.executeCommand("ndsctl status");
-    } catch (error) {
-      console.error("Failed to get router status:", error.message);
-      throw error;
-    }
-  }
-
-  async getClients() {
-    try {
-      return await this.executeCommand("ndsctl json");
-    } catch (error) {
-      console.error("Failed to get router clients:", error.message);
-      throw error;
-    }
+    }, delay);
   }
 
   isConnectionHealthy() {
     return (
-      this.isConnected && this.ssh.connection && !this.ssh.connection.destroyed
+      this.isConnected &&
+      this.ssh.connection &&
+      !this.ssh.connection.destroyed &&
+      this.ssh.connection.writable
     );
   }
 
   disconnect() {
-    if (this.isConnected) {
-      try {
-        this.ssh.dispose();
-      } catch (error) {
-        console.error("Error during SSH disconnect:", error.message);
-      }
-      this.isConnected = false;
-      console.log("SSH connection closed");
+    if (!this.isConnected) return;
+
+    try {
+      this.ssh.dispose();
+      console.log("🔌 SSH disconnected");
+    } catch (err) {
+      console.error("Error during disconnect:", err.message);
     }
+
+    this.isConnected = false;
+  }
+
+  setupProcessHooks() {
+    process.on("SIGINT", () => this.disconnect());
+    process.on("SIGTERM", () => this.disconnect());
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* COMMAND EXECUTION */
+  /* ------------------------------------------------------------------ */
+
+  enqueue(taskFn) {
+    this.commandQueue = this.commandQueue.then(taskFn).catch(() => {});
+    return this.commandQueue;
+  }
+
+  async execWithTimeout(command, timeout = 10000) {
+    return Promise.race([
+      this.ssh.execCommand(command),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Command timeout")), timeout),
+      ),
+    ]);
+  }
+
+  async executeCommand(command) {
+    return this.enqueue(async () => {
+      let retries = 2;
+
+      while (retries > 0) {
+        try {
+          if (!this.isConnectionHealthy()) {
+            await this.connect();
+          }
+
+          const result = await this.execWithTimeout(command);
+
+          return result;
+        } catch (error) {
+          retries--;
+          this.isConnected = false;
+
+          console.error(
+            `Command failed (${command}) - retries left: ${retries}`,
+            error.message,
+          );
+
+          if (retries === 0) {
+            throw error;
+          }
+
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* ROUTER OPERATIONS */
+  /* ------------------------------------------------------------------ */
+
+  normalizeMac(mac) {
+    if (!mac) throw new Error("MAC address required");
+
+    const cleaned = mac.toLowerCase().replace(/[^a-f0-9:]/g, "");
+
+    if (!/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/.test(cleaned)) {
+      throw new Error(`Invalid MAC address: ${mac}`);
+    }
+
+    return cleaned;
+  }
+
+  async authenticateUser(mac) {
+    const normalized = this.normalizeMac(mac);
+    return this.executeCommand(`ndsctl auth ${normalized}`);
+  }
+
+  async deauthenticateUser(mac) {
+    const normalized = this.normalizeMac(mac);
+    return this.executeCommand(`ndsctl deauth ${normalized}`);
+  }
+
+  async getStatus() {
+    return this.executeCommand("ndsctl status");
+  }
+
+  async getClients() {
+    return this.executeCommand("ndsctl json");
   }
 }
 
-// Create singleton instance
-const sshClient = new RouterSSHClient();
+/* ------------------------------------------------------------------ */
+/* SINGLETON EXPORT */
+/* ------------------------------------------------------------------ */
 
-module.exports = sshClient;
+let instance;
+
+module.exports = () => {
+  if (!instance) {
+    instance = new RouterSSHClient();
+  }
+  return instance;
+};

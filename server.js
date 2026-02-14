@@ -1,9 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const sshClient = require("./src/config/ssh");
+const getSshClient = require("./src/config/ssh");
 const { mongoClient } = require("./src/config/db");
-const sshMonitor = require("./src/utils/sshMonitor");
 const { initAgenda } = require("./src/tasks/agenda");
 
 const app = express();
@@ -37,6 +36,7 @@ app.use("/api/v1", require("./src/routes/index"));
 const port = process.env.PORT || 5000;
 
 async function startServer() {
+  const sshClient = getSshClient();
   try {
     await mongoClient();
     await sshClient.connect();
@@ -47,7 +47,6 @@ async function startServer() {
 
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
-      sshMonitor.startMonitoring();
     });
   } catch (error) {
     console.error("Failed to start server:", error);
@@ -57,9 +56,6 @@ async function startServer() {
 
 function gracefulShutdown() {
   console.log("\nGracefully shutting down server...");
-
-  // Stop SSH monitoring
-  sshMonitor.stopMonitoring();
 
   // Close SSH connection
   try {

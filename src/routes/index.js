@@ -1,10 +1,11 @@
 const router = require("express").Router();
-const sshClient = require("../config/ssh");
-const sshMonitor = require("../utils/sshMonitor");
+const getSshClient = require("../config/ssh");
 const { dummySubscribe } = require("../controllers/pay/dummySubscribe");
 const { subscribe } = require("../controllers/subscribe");
 const registerUrl = require("../controllers/daraja/registerUrls");
 const { stkWebhook } = require("../controllers/daraja/stkWebhook");
+
+const sshClient = getSshClient();
 
 router.post("/dummy-subscribe", dummySubscribe); // For testing purposes
 router.post("/subscribe", subscribe);
@@ -19,16 +20,6 @@ router.post("/deauth", async (req, res) => {
       return res.status(400).json({
         error: "MAC address is required",
         success: false,
-      });
-    }
-
-    // Check if SSH is connected
-    if (!sshClient.isConnectionHealthy()) {
-      return res.status(503).json({
-        error: "SSH connection to router is not available",
-        success: false,
-        message:
-          "Please try again in a few moments as the system attempts to reconnect",
       });
     }
 
@@ -56,14 +47,6 @@ router.get("/packages", (req, res) => {
 
 router.get("/router/status", async (req, res) => {
   try {
-    if (!sshClient.isConnectionHealthy()) {
-      return res.status(503).json({
-        error: "SSH connection to router is not available",
-        success: false,
-        connected: false,
-      });
-    }
-
     const status = await sshClient.getStatus();
 
     return res.status(200).json({
@@ -83,14 +66,6 @@ router.get("/router/status", async (req, res) => {
 
 router.get("/router/clients", async (req, res) => {
   try {
-    if (!sshClient.isConnectionHealthy()) {
-      return res.status(503).json({
-        error: "SSH connection to router is not available",
-        success: false,
-        connected: false,
-      });
-    }
-
     const clients = await sshClient.getClients();
 
     return res.status(200).json({
@@ -103,35 +78,6 @@ router.get("/router/clients", async (req, res) => {
     return res.status(500).json({
       error: "Failed to get router status",
       success: false,
-      message: error.message,
-    });
-  }
-});
-
-router.get("/ssh/status", (req, res) => {
-  const status = sshMonitor.getConnectionStatus();
-
-  return res.status(200).json({
-    success: true,
-    ssh: status,
-  });
-});
-
-router.post("/ssh/reconnect", async (req, res) => {
-  try {
-    console.log("Manual SSH reconnection requested");
-    await sshClient.connect();
-
-    return res.status(200).json({
-      success: true,
-      message: "SSH reconnection successful",
-      status: sshMonitor.getConnectionStatus(),
-    });
-  } catch (error) {
-    console.error("Manual SSH reconnection failed:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "SSH reconnection failed",
       message: error.message,
     });
   }

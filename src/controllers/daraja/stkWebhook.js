@@ -15,7 +15,7 @@ const stkWebhook = async (req, res) => {
       !ResultDesc
     ) {
       return res.status(400).json({ message: "Invalid webhook payload" });
-      // TODO: EMIT EVENT FOR INVALID PAYLOAD
+      // TODO: EMIT EVENT FOR FAILED WEBHOOK
     }
     const result = await processTransactionStatus({
       MerchantRequestID,
@@ -23,7 +23,7 @@ const stkWebhook = async (req, res) => {
       ResultCode,
       ResultDesc,
     });
-
+    // TODO: STATUS TO BE USED JUST FOR LOGGING
     if (result.status === "duplicate") {
       return res.status(200).json({ message: "Duplicate operation" });
     }
@@ -41,6 +41,7 @@ const stkWebhook = async (req, res) => {
         session: result.session,
       });
     }
+    // TODO: EMIT EVENT FOR TRANSACTION PROCESSED
 
     return res.status(200).json({ message: "payment success" });
   } catch (error) {

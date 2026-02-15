@@ -9,15 +9,25 @@ const sessionsSchema = new mongoose.Schema(
     },
     startTime: {
       type: Date,
-      default: Date.now,
     },
     endTime: {
       type: Date,
     },
     status: {
       type: String,
-      enum: ["ACTIVE", "PAUSED", "EXPIRED", "DEFERRED"],
+      enum: [
+        "ACTIVE",
+        "PAUSED",
+        "EXPIRED",
+        "DEFERRED",
+        "AUTH_FAILED",
+        "DEAUTH_FAILED",
+      ],
       default: "ACTIVE",
+    },
+    retryAttempts: {
+      type: Number,
+      default: 0,
     },
     packageName: {
       type: String,

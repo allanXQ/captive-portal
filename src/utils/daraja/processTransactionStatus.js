@@ -37,15 +37,6 @@ async function processTransactionStatus({
       return { status: "duplicate" };
     }
 
-    switch (parseInt(ResultCode, 10)) {
-      case 0:
-        // Success - will be handled in the main flow
-        break;
-      case 4999:
-        break;
-      default:
-        break;
-    }
     if (parseInt(ResultCode, 10) === 0) {
       const transaction = await transactions.findOneAndUpdate(
         {

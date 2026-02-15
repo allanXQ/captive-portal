@@ -1,5 +1,4 @@
 const getSshClient = require("../../config/ssh");
-const ActionQueue = require("../../models/actionQueue");
 const clients = require("../../models/clients");
 
 async function userAuth(clientId, action) {
@@ -27,21 +26,8 @@ async function userAuth(clientId, action) {
     }
   } catch (sshError) {
     console.error("Failed to authenticate user via SSH:", sshError);
-    queueAction(clientId, action, new Date(Date.now() + 5 * 60 * 1000)); // Retry after 5 minutes
     throw new Error(sshError);
   }
-}
-
-async function queueAction(clientId, action, triggerAt) {
-  // TODO: Rethink this
-  try {
-    const queueAction = ActionQueue({
-      clientId,
-      action,
-      triggerAt,
-    });
-    await queueAction.save();
-  } catch (error) {}
 }
 
 module.exports = userAuth;

@@ -3,6 +3,7 @@ const Agenda = require("agenda");
 const { database_url } = require("../config/envs");
 const {
   processSessionTransitions,
+  processAuthRetries,
   pollPendingTransactions,
 } = require("./jobs");
 
@@ -20,6 +21,7 @@ async function initAgenda() {
     });
 
     agenda.define("process session transitions", processSessionTransitions);
+    agenda.define("process auth retries", processAuthRetries);
     agenda.define("poll pending transactions", pollPendingTransactions);
 
     await new Promise((resolve, reject) => {
@@ -36,6 +38,7 @@ async function initAgenda() {
     await agenda.start();
 
     await agenda.every("10 seconds", "process session transitions");
+    await agenda.every("10 seconds", "process auth retries");
     await agenda.every("5 seconds", "poll pending transactions");
 
     console.log("🚀 Agenda started & job scheduled");

@@ -8,17 +8,15 @@ const { normalizePhoneNumber } = require("../utils/phoneNumber");
 const subscribe = async (req, res) => {
   try {
     const { clientMac, clientIp, phoneNumber, packageName } = req.body;
-    const client = await clients.findOne({ macAddress: clientMac });
-
     if (!packageName || !clientMac || !clientIp || !phoneNumber) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+    const client = await clients.findOne({ macAddress: clientMac });
 
     const phone = normalizePhoneNumber(phoneNumber);
 
     const triggerPayment = async (params) => {
       const { phoneNumber, packageName, client } = params;
-      console.log(params);
       try {
         //trigger payment process here
         const price = packages.find((pkg) => pkg.name === packageName)?.price;

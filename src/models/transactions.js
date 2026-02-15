@@ -16,6 +16,7 @@ const transactionSchema = new mongoose.Schema(
     TransactionDate: { type: Date },
     MerchantRequestID: { type: String, required: true },
     CheckoutRequestID: { type: String, required: true },
+    isTransitioned: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

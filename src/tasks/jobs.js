@@ -86,9 +86,13 @@ const pollPendingTransactions = async () => {
   console.log("Running job: poll pending transactions");
 
   try {
-    const cutoffTime = new Date(Date.now() - 60 * 1000);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const pendingTransactions = await transactions
-      .find({ Status: "PENDING", createdAt: { $lte: cutoffTime } })
+      .find({
+        Status: "PENDING",
+        isTransitioned: false,
+        createdAt: { $gte: oneHourAgo },
+      })
       .sort({ createdAt: 1 })
       .limit(25);
 

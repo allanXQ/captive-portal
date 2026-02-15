@@ -27,7 +27,6 @@ const subscribe = async (req, res) => {
       try {
         // Start transaction
         await session.startTransaction();
-        const pack = "trial";
         // Create new client
         const newClient = new clients({
           phoneNumber,
@@ -40,9 +39,9 @@ const subscribe = async (req, res) => {
         // Create new session for the client
         const newSession = new sessions({
           clientId: savedClient._id,
-          packageName: pack,
+          packageName: packageName,
           startTime: new Date(),
-          endTime: calculateSessionEndTime(new Date(), pack),
+          endTime: calculateSessionEndTime(new Date(), packageName),
         });
 
         const savedSession = await newSession.save({ session });

@@ -16,10 +16,7 @@ const processSessionTransitions = async (job) => {
     const clientsToProcess = await sessions.aggregate([
       {
         $match: {
-          $or: [
-            { status: "ACTIVE", endTime: { $lte: now } },
-            { status: "DEFERRED", startTime: { $lte: now } },
-          ],
+          $or: [{ status: "ACTIVE", endTime: { $lte: now } }],
         },
       },
       {
@@ -36,54 +33,22 @@ const processSessionTransitions = async (job) => {
         .populate("clientId")
         .sort({ startTime: 1 }); // Process in chronological order
 
-      const hasReadyDeferred = clientSessions.some(
-        (session) => session.status === "DEFERRED" && session.startTime <= now,
-      );
-
       for (const session of clientSessions) {
         // Handle expired sessions
         if (session.status === "ACTIVE" && session.endTime <= now) {
-          if (hasReadyDeferred) {
+          const result = await userAuth(
+            session.clientId?._id || session.clientId,
+            "DEAUTH",
+          );
+          if (result && result.status === "success") {
             session.status = "EXPIRED";
             await session.save();
             console.log(`📤 Marking session ${session._id} as expired`);
           } else {
-            const result = await userAuth(
-              session.clientId?._id || session.clientId,
-              "DEAUTH",
-            );
-            if (result && result.status === "success") {
-              session.status = "EXPIRED";
-              await session.save();
-              console.log(`📤 Marking session ${session._id} as expired`);
-            } else {
-              session.status = "DEAUTH_PENDING";
-              session.retryAttempts = (session.retryAttempts || 0) + 1;
-              await session.save();
-              console.log(
-                `📤 Marking session ${session._id} as deauth pending`,
-              );
-            }
-          }
-        }
-
-        // Handle deferred sessions
-        if (session.status === "DEFERRED" && session.startTime <= now) {
-          const result = await userAuth(
-            session.clientId?._id || session.clientId,
-            "AUTH",
-          );
-          if (result && result.status === "success") {
-            session.status = "ACTIVE";
-            await session.save();
-            console.log(`📥 Activating deferred session ${session._id}`);
-          } else {
-            session.status = "AUTH_PENDING";
+            session.status = "DEAUTH_PENDING";
             session.retryAttempts = (session.retryAttempts || 0) + 1;
             await session.save();
-            console.log(
-              `📥 Marking deferred session ${session._id} as auth pending`,
-            );
+            console.log(`📤 Marking session ${session._id} as deauth pending`);
           }
         }
       }

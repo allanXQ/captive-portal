@@ -87,22 +87,12 @@ async function processTransactionStatus({
       );
 
       if (activeSession) {
-        const deferredStartTime = activeSession.endTime;
-        const newSession = new sessions({
-          clientId: transaction.ClientId,
-          packageName: package.name,
-          status: "DEFERRED",
-          startTime: deferredStartTime,
-          endTime: calculateSessionEndTime(deferredStartTime),
-        });
-        const savedSession = await newSession.save({ session });
         await session.commitTransaction();
         session = null;
         return {
-          status: "deferred",
-          session: savedSession,
-          message:
-            "New session will start after the current active session ends",
+          status: "active",
+          session: activeSession,
+          message: "Active session already exists",
         };
       } else {
         const authResult = await userAuth(transaction.ClientId, "AUTH");

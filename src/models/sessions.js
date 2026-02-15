@@ -15,14 +15,7 @@ const sessionsSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: [
-        "ACTIVE",
-        "PAUSED",
-        "EXPIRED",
-        "DEFERRED",
-        "AUTH_PENDING",
-        "DEAUTH_PENDING",
-      ],
+      enum: ["ACTIVE", "PAUSED", "EXPIRED", "AUTH_PENDING", "DEAUTH_PENDING"],
       default: "ACTIVE",
     },
     retryAttempts: {

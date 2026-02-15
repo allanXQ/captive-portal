@@ -34,7 +34,7 @@ const stkWebhook = async (req, res) => {
         .json({ message: "Payment Failed", details: ResultDesc });
     }
 
-    if (result.status === "deferred") {
+    if (result.status === "active") {
       return res.status(200).json({
         success: true,
         message: result.message,

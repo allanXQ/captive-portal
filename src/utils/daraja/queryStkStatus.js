@@ -28,15 +28,17 @@ const queryStkStatus = async (checkoutRequestId) => {
       },
     );
 
-    return response.data;
+    return {
+      status: "success",
+      data: response.data,
+    };
   } catch (error) {
-    const errorMessage =
-      error?.response?.data || error?.message || "STK query failed";
-    throw new Error(
-      typeof errorMessage === "string"
-        ? errorMessage
-        : JSON.stringify(errorMessage),
-    );
+    return {
+      status: "error",
+      data: null,
+      message:
+        error.response?.data?.errorMessage || error.message || "Unknown error",
+    };
   }
 };
 

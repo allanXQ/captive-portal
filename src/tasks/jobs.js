@@ -1,12 +1,10 @@
-const getSshClientshClient = require("../config/ssh");
 const sessions = require("../models/sessions");
 const transactions = require("../models/transactions");
 const queryStkStatus = require("../utils/daraja/queryStkStatus");
 const {
   processTransactionStatus,
 } = require("../utils/daraja/processTransactionStatus");
-
-const sshClient = getSshClientshClient();
+const userAuth = require("../utils/ssh/userAuth");
 
 const processSessionTransitions = async (job) => {
   console.log("Running job: process session transitions");
@@ -33,48 +31,61 @@ const processSessionTransitions = async (job) => {
     ]);
 
     for (const clientGroup of clientsToProcess) {
-      const clientId = clientGroup._id;
       const clientSessions = await sessions
         .find({ _id: { $in: clientGroup.sessions.map((s) => s._id) } })
         .populate("clientId")
         .sort({ startTime: 1 }); // Process in chronological order
 
-      let shouldAuth = false;
-      let shouldDeauth = false;
-      let macAddress = null;
+      const hasReadyDeferred = clientSessions.some(
+        (session) => session.status === "DEFERRED" && session.startTime <= now,
+      );
 
       for (const session of clientSessions) {
-        macAddress = session.clientId.macAddress;
-
         // Handle expired sessions
         if (session.status === "ACTIVE" && session.endTime <= now) {
-          session.status = "EXPIRED";
-          await session.save();
-          shouldDeauth = true;
-          console.log(`📤 Marking session ${session._id} as expired`);
+          if (hasReadyDeferred) {
+            session.status = "EXPIRED";
+            await session.save();
+            console.log(`📤 Marking session ${session._id} as expired`);
+          } else {
+            const result = await userAuth(
+              session.clientId?._id || session.clientId,
+              "DEAUTH",
+            );
+            if (result && result.status === "success") {
+              session.status = "EXPIRED";
+              await session.save();
+              console.log(`📤 Marking session ${session._id} as expired`);
+            } else {
+              session.status = "DEAUTH_PENDING";
+              session.retryAttempts = (session.retryAttempts || 0) + 1;
+              await session.save();
+              console.log(
+                `📤 Marking session ${session._id} as deauth pending`,
+              );
+            }
+          }
         }
 
         // Handle deferred sessions
         if (session.status === "DEFERRED" && session.startTime <= now) {
-          session.status = "ACTIVE";
-          await session.save();
-          shouldAuth = true;
-          console.log(`📥 Activating deferred session ${session._id}`);
+          const result = await userAuth(
+            session.clientId?._id || session.clientId,
+            "AUTH",
+          );
+          if (result && result.status === "success") {
+            session.status = "ACTIVE";
+            await session.save();
+            console.log(`📥 Activating deferred session ${session._id}`);
+          } else {
+            session.status = "AUTH_PENDING";
+            session.retryAttempts = (session.retryAttempts || 0) + 1;
+            await session.save();
+            console.log(
+              `📥 Marking deferred session ${session._id} as auth pending`,
+            );
+          }
         }
-      }
-
-      // Apply final state (auth overrides deauth if both needed)
-      if (shouldAuth && shouldDeauth) {
-        console.log(
-          `🔄 Client ${macAddress} transitioning from expired to new session`,
-        );
-        await sshClient.authenticateUser(macAddress);
-      } else if (shouldAuth) {
-        console.log(`✅ Authenticating ${macAddress}`);
-        await sshClient.authenticateUser(macAddress);
-      } else if (shouldDeauth) {
-        console.log(`❌ Deauthenticating ${macAddress}`);
-        await sshClient.deauthenticateUser(macAddress);
       }
     }
   } catch (error) {
@@ -105,23 +116,23 @@ const pollPendingTransactions = async () => {
       try {
         const response = await queryStkStatus(transaction.CheckoutRequestID);
 
-        if (!response) {
+        if (response.status !== "success") {
           console.warn(
             `No response for transaction ${transaction.CheckoutRequestID}`,
           );
           continue;
         }
 
-        if (String(response.ResponseCode) !== "0") {
+        if (String(response.data.ResponseCode) !== "0") {
           console.warn(
             `STK query rejected for ${transaction.CheckoutRequestID}: ${response.ResponseDescription || response.ResponseCode}`,
           );
           continue;
         }
 
-        if (response.ResultCode === undefined || response.ResultCode === null) {
+        if (response.data.ResultCode === 4999) {
           console.log(
-            `Transaction still pending: ${transaction.CheckoutRequestID}`,
+            `Transaction still processing: ${transaction.CheckoutRequestID}`,
           );
           continue;
         }
@@ -129,8 +140,9 @@ const pollPendingTransactions = async () => {
         await processTransactionStatus({
           MerchantRequestID: transaction.MerchantRequestID,
           CheckoutRequestID: transaction.CheckoutRequestID,
-          ResultCode: response.ResultCode,
-          ResultDesc: response.ResultDesc || response.ResultDescription,
+          ResultCode: response.data.ResultCode,
+          ResultDesc:
+            response.data.ResultDesc || response.data.ResultDescription,
         });
       } catch (error) {
         console.error(
@@ -144,4 +156,48 @@ const pollPendingTransactions = async () => {
   }
 };
 
-module.exports = { processSessionTransitions, pollPendingTransactions };
+const processAuthRetries = async (job) => {
+  console.log("Running job: process auth retries");
+  try {
+    const failedAuths = await sessions.find({
+      $or: [{ status: "AUTH_PENDING" }, { status: "DEAUTH_PENDING" }],
+      retryAttempts: { $lt: 3 },
+    });
+    if (failedAuths.length === 0) {
+      console.log("No failed auths to retry");
+      return;
+    }
+    for (const session of failedAuths) {
+      try {
+        if (session.status === "AUTH_PENDING") {
+          const result = await userAuth(session.clientId, "AUTH");
+          if (result && result.status === "success") {
+            session.status = "ACTIVE";
+          }
+          console.log(`✅ Retried authentication for ${session._id}`);
+        } else if (session.status === "DEAUTH_PENDING") {
+          const result = await userAuth(session.clientId, "DEAUTH");
+          if (result && result.status === "success") {
+            session.status = "EXPIRED";
+          }
+          console.log(`❌ Retried deauthentication for ${session._id}`);
+        }
+        session.retryAttempts += 1;
+        await session.save();
+      } catch (error) {
+        console.error(
+          `Failed retry for session ${session._id}:`,
+          error.message || error,
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error processing auth retries:", error);
+  }
+};
+
+module.exports = {
+  processSessionTransitions,
+  pollPendingTransactions,
+  processAuthRetries,
+};

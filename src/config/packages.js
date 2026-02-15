@@ -7,7 +7,7 @@ const packages = [
   // },
   // {
   //   name: "1hr",
-  //   price: 10,
+  //   price: 10,ppacka
   //   duration: 1, // duration in hours
   //   description: "Perfect for quick online tasks.",
   // },
@@ -15,19 +15,19 @@ const packages = [
     name: "6hr",
     price: 10,
     duration: 0.03333333,
-    description: "",
+    description: "6 hours",
   },
   {
     name: "12hr",
     price: 20,
     duration: 12,
-    description: "",
+    description: "12 hours",
   },
   {
     name: "24hr",
     price: 40,
     duration: 24,
-    description: "",
+    description: "24 hours",
   },
 ];
 

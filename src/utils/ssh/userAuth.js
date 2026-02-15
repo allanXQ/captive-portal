@@ -7,26 +7,64 @@ async function userAuth(clientId, action) {
 
   const client = await clients.findOne({ _id: clientId });
   if (!client) {
-    throw new Error("Client not found for authentication");
+    return {
+      status: "error",
+      message: `Client with ID ${clientId} not found`,
+      data: null,
+    };
   }
 
   // Try to authenticate user, but don't fail if SSH is down
   // TODO: Implement checker for failed auth attempts
   try {
     switch (action) {
-      case "AUTH":
-        await sshClient.authenticateUser(client.macAddress);
-        break;
+      case "AUTH": {
+        const result = await sshClient.authenticateUser(client.macAddress);
+        if (result && result.code === 0) {
+          return {
+            status: "success",
+            message: `Client ${client.macAddress} authenticated successfully`,
+            data: result,
+          };
+        }
+        return {
+          status: "error",
+          message: `Authentication failed for ${client.macAddress}`,
+          data: result || null,
+        };
+      }
       //TODO: Log auth
-      case "DEAUTH":
-        await sshClient.deauthenticateUser(client.macAddress);
-        break;
+      case "DEAUTH": {
+        const deauthResult = await sshClient.deauthenticateUser(
+          client.macAddress,
+        );
+        if (deauthResult && deauthResult.code === 0) {
+          return {
+            status: "success",
+            message: `Client ${client.macAddress} deauthenticated successfully`,
+            data: deauthResult,
+          };
+        }
+        return {
+          status: "error",
+          message: `Deauthentication failed for ${client.macAddress}`,
+          data: deauthResult || null,
+        };
+      }
       default:
-        throw new Error(`Unknown action for user authentication: ${action}`);
+        return {
+          status: "error",
+          message: `Unknown action: ${action}`,
+          data: null,
+        };
     }
   } catch (sshError) {
     console.error("Failed to authenticate user via SSH:", sshError);
-    throw new Error(sshError);
+    return {
+      status: "error",
+      message: sshError?.message || String(sshError),
+      data: null,
+    };
   }
 }
 

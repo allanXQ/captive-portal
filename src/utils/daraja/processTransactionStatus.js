@@ -55,14 +55,20 @@ async function processTransactionStatus({
       );
 
       if (!transaction) {
-        throw new Error("Transaction not found");
+        return {
+          status: "failed",
+          message: "Transaction not found for processing",
+        };
       }
 
       const package = packages.find(
         (pkg) => pkg.price === parseInt(transaction.Amount, 10),
       );
       if (!package) {
-        throw new Error("No matching package for the paid amount");
+        return {
+          status: "failed",
+          message: "No matching package for the paid amount",
+        };
       }
 
       const calculateSessionEndTime = (startTime) => {
@@ -98,22 +104,38 @@ async function processTransactionStatus({
           message:
             "New session will start after the current active session ends",
         };
+      } else {
+        const authResult = await userAuth(transaction.ClientId, "AUTH");
+        const startTime = new Date();
+        const endTime = calculateSessionEndTime(startTime);
+        if (authResult.status !== "success") {
+          const newSession = new sessions({
+            clientId: transaction.ClientId,
+            packageName: package.name,
+            status: "AUTH_PENDING",
+            retryAttempts: 1,
+            startTime,
+            endTime,
+          });
+          await newSession.save({ session });
+          await session.commitTransaction();
+          session = null;
+        } else {
+          const newSession = new sessions({
+            clientId: transaction.ClientId,
+            packageName: package.name,
+            status: "ACTIVE",
+            startTime,
+            endTime,
+          });
+          await newSession.save({ session });
+          await session.commitTransaction();
+          session = null;
+        }
       }
-
-      const newSession = new sessions({
-        clientId: transaction.ClientId,
-        packageName: package.name,
-        status: "ACTIVE",
-        startTime: new Date(),
-        endTime: calculateSessionEndTime(new Date()),
-      });
-      await newSession.save({ session });
-      await session.commitTransaction();
-      session = null;
-      await userAuth(transaction.ClientId, "AUTH");
-
       return { status: "processed" };
     } else if (parseInt(ResultCode, 10) === 4999) {
+      return { status: "processing" };
     } else {
       await transactions.updateOne(
         {

@@ -3,72 +3,22 @@ const triggerStkPush = require("../utils/daraja/triggerStkPush");
 const { packages } = require("../config/packages");
 const clients = require("../models/clients");
 const sessions = require("../models/sessions");
+const { normalizePhoneNumber } = require("../utils/phoneNumber");
 
 const subscribe = async (req, res) => {
   try {
     const { clientMac, clientIp, phoneNumber, packageName } = req.body;
     const client = await clients.findOne({ macAddress: clientMac });
 
-    const calculateSessionEndTime = (startTime, pack) => {
-      const package = packages.find((pkg) => pkg.name === pack);
-      if (!package) {
-        throw new Error("Invalid package name");
-      }
-      return startTime
-        ? new Date(startTime.getTime() + package.duration * 60 * 60 * 1000)
-        : new Date(Date.now() + package.duration * 60 * 60 * 1000);
-    };
+    if (!packageName || !clientMac || !clientIp || !phoneNumber) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-    if (!client) {
-      // TODO: This opens a loophole where client can get multiple trials by changing MAC address
-      // Start a session for the transaction
-      const session = await mongoose.startSession();
+    const phone = normalizePhoneNumber(phoneNumber);
 
-      try {
-        // Start transaction
-        await session.startTransaction();
-        // Create new client
-        const newClient = new clients({
-          phoneNumber,
-          macAddress: clientMac,
-          ipAddress: clientIp,
-        });
-
-        const savedClient = await newClient.save({ session });
-
-        // Create new session for the client
-        const newSession = new sessions({
-          clientId: savedClient._id,
-          packageName: packageName,
-          startTime: new Date(),
-          endTime: calculateSessionEndTime(new Date(), packageName),
-        });
-
-        const savedSession = await newSession.save({ session });
-
-        // Commit the transaction
-        await session.commitTransaction();
-
-        return res.status(201).json({
-          success: true,
-          message: "Yor free trial session has started",
-          client: savedClient,
-          session: savedSession,
-        });
-      } catch (transactionError) {
-        // Rollback transaction on error
-        await session.abortTransaction();
-        throw transactionError;
-      } finally {
-        // End the session
-        await session.endSession();
-      }
-    } else {
-      if (!phoneNumber) {
-        return res
-          .status(400)
-          .json({ error: "Phone number is required for existing clients" });
-      }
+    const triggerPayment = async (params) => {
+      const { phoneNumber, packageName, client } = params;
+      console.log(params);
       try {
         //trigger payment process here
         const price = packages.find((pkg) => pkg.name === packageName)?.price;
@@ -83,10 +33,32 @@ const subscribe = async (req, res) => {
       } catch (error) {
         throw error;
       }
+    };
+
+    if (!client) {
+      const newClient = new clients({
+        phoneNumber: phone,
+        macAddress: clientMac,
+        ipAddress: clientIp,
+      });
+      await newClient.save();
+      await triggerPayment({
+        phoneNumber: phone,
+        packageName,
+        client: newClient,
+      });
+    } else {
+      if (client.ipAddress !== clientIp) {
+        client.ipAddress = clientIp;
+        await client.save();
+      }
+      await triggerPayment({ phoneNumber: phone, packageName, client });
     }
   } catch (error) {
     console.error("Subscribe error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: "An error occurred. Please try again later." });
   }
 };
 

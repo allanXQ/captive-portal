@@ -29,7 +29,7 @@ const triggerStkPush = async (phoneNumber, amount, clientId) => {
         PartyB: process.env.PARTYB,
         PhoneNumber: phoneNumber,
         CallBackURL,
-        AccountReference: "NetSpot",
+        AccountReference: "NetSpot Wifi",
         TransactionDesc: "Mpesa Daraja API stk push test",
       },
       {

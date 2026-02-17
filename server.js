@@ -4,6 +4,7 @@ const cors = require("cors");
 const getSshClient = require("./src/config/ssh");
 const { mongoClient } = require("./src/config/db");
 const { initAgenda } = require("./src/tasks/agenda");
+const { registerSSE, bindEventBus } = require("./src/events/sseBridge");
 
 const app = express();
 const sshClient = getSshClient();
@@ -44,6 +45,8 @@ async function startServer() {
 
     process.on("SIGINT", gracefulShutdown);
     process.on("SIGTERM", gracefulShutdown);
+    registerSSE(app);
+    bindEventBus();
 
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);

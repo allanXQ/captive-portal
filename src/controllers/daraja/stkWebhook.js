@@ -1,3 +1,4 @@
+const eventBus = require("../../events/eventBus");
 const {
   processTransactionStatus,
 } = require("../../utils/daraja/processTransactionStatus");
@@ -14,8 +15,11 @@ const stkWebhook = async (req, res) => {
       ResultCode === undefined ||
       !ResultDesc
     ) {
-      return res.status(400).json({ message: "Invalid webhook payload" });
-      // TODO: EMIT EVENT FOR FAILED WEBHOOK
+      eventBus.emit("stkWebhookFailed", {
+        reason: "Missing required fields",
+        payload: req.body,
+      });
+      return res.status(200).json({});
     }
     const result = await processTransactionStatus({
       MerchantRequestID,
@@ -35,16 +39,18 @@ const stkWebhook = async (req, res) => {
     }
 
     if (result.status === "active") {
+      eventBus.emit("stkWebhookSuccess");
       return res.status(200).json({
         success: true,
         message: result.message,
-        session: result.session,
       });
     }
-    // TODO: EMIT EVENT FOR TRANSACTION PROCESSED
-
     return res.status(200).json({ message: "payment success" });
   } catch (error) {
+    eventBus.emit("stkWebhookFailed", {
+      reason: "Unexpected error",
+      error: error.message,
+    });
     console.error("Webhook processing error:", error);
     return res.status(500).json({ message: "payment processing failed" });
   }

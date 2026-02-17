@@ -17,7 +17,7 @@ async function initAgenda() {
         collection: "agendaJobs",
         options: { useUnifiedTopology: true },
       },
-      processEvery: "5 seconds",
+      maxConcurrency: 20,
     });
 
     agenda.define("process session transitions", processSessionTransitions);

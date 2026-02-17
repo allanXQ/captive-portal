@@ -4,7 +4,7 @@ const sessionsSchema = new mongoose.Schema(
   {
     clientId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Clients",
+      ref: "clients",
       required: true,
     },
     startTime: {

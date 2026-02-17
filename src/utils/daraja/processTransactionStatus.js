@@ -3,6 +3,7 @@ const transactions = require("../../models/transactions");
 const sessions = require("../../models/sessions");
 const { packages } = require("../../config/packages");
 const userAuth = require("../ssh/userAuth");
+const eventBus = require("../../events/eventBus");
 
 async function processTransactionStatus({
   MerchantRequestID,
@@ -38,23 +39,26 @@ async function processTransactionStatus({
     }
 
     if (parseInt(ResultCode, 10) === 0) {
-      const transaction = await transactions.findOneAndUpdate(
-        {
-          MerchantRequestID,
-          CheckoutRequestID,
-        },
-        {
-          $set: {
-            ResultCode,
-            ResultDesc,
-            Status: "PROCESSED",
-            isTransitioned: true,
+      const transaction = await transactions
+        .findOneAndUpdate(
+          {
+            MerchantRequestID,
+            CheckoutRequestID,
           },
-        },
-        { session, new: true },
-      );
+          {
+            $set: {
+              ResultCode,
+              ResultDesc,
+              Status: "PROCESSED",
+              isTransitioned: true,
+            },
+          },
+          { session, new: true },
+        )
+        .populate("ClientId");
 
       if (!transaction) {
+        await session.abortTransaction();
         return {
           status: "failed",
           message: "Transaction not found for processing",
@@ -79,7 +83,7 @@ async function processTransactionStatus({
 
       const activeSession = await sessions.findOne(
         {
-          clientId: transaction.ClientId,
+          clientId: transaction.ClientId._id,
           status: "ACTIVE",
         },
         null,
@@ -95,12 +99,12 @@ async function processTransactionStatus({
           message: "Active session already exists",
         };
       } else {
-        const authResult = await userAuth(transaction.ClientId, "AUTH");
+        const authResult = await userAuth(transaction.ClientId._id, "AUTH");
         const startTime = new Date();
         const endTime = calculateSessionEndTime(startTime);
         if (authResult.status !== "success") {
           const newSession = new sessions({
-            clientId: transaction.ClientId,
+            clientId: transaction.ClientId._id,
             packageName: package.name,
             status: "AUTH_PENDING",
             retryAttempts: 1,
@@ -112,7 +116,7 @@ async function processTransactionStatus({
           session = null;
         } else {
           const newSession = new sessions({
-            clientId: transaction.ClientId,
+            clientId: transaction.ClientId._id,
             packageName: package.name,
             status: "ACTIVE",
             startTime,
@@ -121,31 +125,41 @@ async function processTransactionStatus({
           await newSession.save({ session });
           await session.commitTransaction();
           session = null;
+          eventBus.emit("transactionSuccess", {
+            clientMac: transaction.ClientId.macAddress,
+          });
         }
       }
       return { status: "processed" };
     } else if (parseInt(ResultCode, 10) === 4999) {
       return { status: "processing" };
     } else {
-      await transactions.updateOne(
-        {
-          MerchantRequestID,
-          CheckoutRequestID,
-        },
-        {
-          $set: {
-            ResultCode,
-            ResultDesc,
-            Status: "FAILED",
-            isTransitioned: true,
+      const transaction = await transactions
+        .findOneAndUpdate(
+          {
+            MerchantRequestID,
+            CheckoutRequestID,
           },
-        },
-        { session },
-      );
+          {
+            $set: {
+              ResultCode,
+              ResultDesc,
+              Status: "FAILED",
+              isTransitioned: true,
+            },
+          },
+          { session },
+        )
+        .populate("ClientId");
       await session.commitTransaction();
+      session = null;
+      eventBus.emit("transactionFailed", {
+        clientMac: transaction.ClientId.macAddress,
+      });
       return { status: "failed", details: ResultDesc };
     }
   } catch (error) {
+    eventBus.emit("serverError");
     session && (await session.abortTransaction());
     throw error;
   } finally {

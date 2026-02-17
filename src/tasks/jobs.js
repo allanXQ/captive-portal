@@ -5,6 +5,7 @@ const {
   processTransactionStatus,
 } = require("../utils/daraja/processTransactionStatus");
 const userAuth = require("../utils/ssh/userAuth");
+const { packages } = require("../config/packages");
 
 const processSessionTransitions = async (job) => {
   console.log("Running job: process session transitions");
@@ -112,7 +113,7 @@ const pollPendingTransactions = async () => {
       } catch (error) {
         console.error(
           `Failed to poll transaction ${transaction.CheckoutRequestID}:`,
-          error.message || error,
+          error,
         );
       }
     }
@@ -135,9 +136,27 @@ const processAuthRetries = async (job) => {
     for (const session of failedAuths) {
       try {
         if (session.status === "AUTH_PENDING") {
+          const calculateSessionEndTime = (startTime, packageName) => {
+            const package = packages.find((pkg) => pkg.name === packageName);
+            if (!package) {
+              throw new Error(`Package not found: ${packageName}`);
+            }
+            return startTime
+              ? new Date(
+                  startTime.getTime() + package.duration * 60 * 60 * 1000,
+                )
+              : new Date(Date.now() + package.duration * 60 * 60 * 1000);
+          };
           const result = await userAuth(session.clientId, "AUTH");
+          console.log(result);
           if (result && result.status === "success") {
+            const startTime = new Date();
             session.status = "ACTIVE";
+            session.startTime = startTime;
+            session.endTime = calculateSessionEndTime(
+              startTime,
+              session.packageName,
+            );
           }
           console.log(`✅ Retried authentication for ${session._id}`);
         } else if (session.status === "DEAUTH_PENDING") {
@@ -146,6 +165,8 @@ const processAuthRetries = async (job) => {
             session.status = "EXPIRED";
           }
           console.log(`❌ Retried deauthentication for ${session._id}`);
+
+          // TODO: Implement backoff strategy or alerting if retries keep failing
         }
         session.retryAttempts += 1;
         await session.save();

@@ -3,7 +3,10 @@ const triggerStkPush = require("../utils/daraja/triggerStkPush");
 const { packages } = require("../config/packages");
 const clients = require("../models/clients");
 const sessions = require("../models/sessions");
-const { normalizePhoneNumber } = require("../utils/phoneNumber");
+const {
+  normalizePhoneNumber,
+  InvalidPhoneNumber,
+} = require("../utils/phoneNumber");
 
 const subscribe = async (req, res) => {
   try {
@@ -13,7 +16,15 @@ const subscribe = async (req, res) => {
     }
     const client = await clients.findOne({ macAddress: clientMac });
 
-    const phone = normalizePhoneNumber(phoneNumber);
+    let phone;
+    try {
+      phone = normalizePhoneNumber(phoneNumber);
+    } catch (err) {
+      if (err && err.name === "InvalidPhoneNumber") {
+        return res.status(400).json({ error: err.message });
+      }
+      throw err;
+    }
 
     const triggerPayment = async (params) => {
       const { phoneNumber, packageName, client } = params;
@@ -53,6 +64,9 @@ const subscribe = async (req, res) => {
       await triggerPayment({ phoneNumber: phone, packageName, client });
     }
   } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ error: error.message });
+    }
     console.error("Subscribe error:", error);
     return res
       .status(500)

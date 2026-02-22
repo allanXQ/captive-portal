@@ -1,23 +1,39 @@
+const { parsePhoneNumberFromString } = require("libphonenumber-js");
+class InvalidPhoneNumber extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "InvalidPhoneNumber";
+  }
+}
+
 const normalizePhoneNumber = (rawPhoneNumber) => {
-  if (!rawPhoneNumber) {
+  if (
+    rawPhoneNumber === null ||
+    rawPhoneNumber === undefined ||
+    rawPhoneNumber === ""
+  ) {
     return rawPhoneNumber;
   }
 
-  let phone = String(rawPhoneNumber).trim();
-  phone = phone.replace(/[\s-]/g, "");
+  const asString = String(rawPhoneNumber).trim();
 
-  if (phone.startsWith("+")) {
-    phone = phone.slice(1);
+  // Parse with Kenya as default region. This accepts local formats like 0712... and
+  // international formats like +254712....
+  const phoneNumber = parsePhoneNumberFromString(asString, "KE");
+  if (!phoneNumber || !phoneNumber.isValid()) {
+    throw new InvalidPhoneNumber(`Invalid phone number: ${rawPhoneNumber}`);
   }
 
-  if (phone.startsWith("07") || phone.startsWith("01")) {
-    phone = `254${phone.slice(1)}`;
+  // Ensure the number belongs to Kenya (KE)
+  if (phoneNumber.country !== "KE") {
+    throw new InvalidPhoneNumber(
+      `Only Kenyan phone numbers are supported: ${rawPhoneNumber}`,
+    );
   }
 
-  if (phone.startsWith("254")) {
-    phone = phone;
-  }
-  return phone;
+  // Return digits-only national format with country code (e.g. 2547xxxxxxxx)
+  const e164 = phoneNumber.format("E.164"); // +2547...
+  return e164.startsWith("+") ? e164.slice(1) : e164;
 };
 
-module.exports = { normalizePhoneNumber };
+module.exports = { normalizePhoneNumber, InvalidPhoneNumber };

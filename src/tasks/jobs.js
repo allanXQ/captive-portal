@@ -8,8 +8,6 @@ const userAuth = require("../utils/ssh/userAuth");
 const { packages } = require("../config/packages");
 
 const processSessionTransitions = async (job) => {
-  console.log("Running job: process session transitions");
-
   try {
     const now = new Date();
 
@@ -60,8 +58,6 @@ const processSessionTransitions = async (job) => {
 };
 
 const pollPendingTransactions = async () => {
-  console.log("Running job: poll pending transactions");
-
   try {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const pendingTransactions = await transactions
@@ -123,7 +119,6 @@ const pollPendingTransactions = async () => {
 };
 
 const processAuthRetries = async (job) => {
-  console.log("Running job: process auth retries");
   try {
     const failedAuths = await sessions.find({
       $or: [{ status: "AUTH_PENDING" }, { status: "DEAUTH_PENDING" }],

@@ -14,7 +14,7 @@ const packages = [
   {
     name: "6hr",
     price: 10,
-    duration: 0.03333333,
+    duration: 6,
     description: "6 hours",
   },
   {
